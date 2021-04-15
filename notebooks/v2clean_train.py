@@ -1,3 +1,4 @@
+# !pip install -q efficientnet
 # 1-----------------------
 import math, re, os
 import numpy as np
@@ -39,14 +40,15 @@ EMB_SIZE=512
 BATCH_SIZE = BATCH_SIZE_PER_TPU * strategy.num_replicas_in_sync
 FOLDERNAME = 'v2clean_sample'
 # DRIVE_DS_PATH = '/content/gdrive/My Drive/'+FOLDERNAME
-DRIVE_DS_PATH = './MyDrive/'+FOLDERNAME
+DRIVE_DS_PATH = './data/'+FOLDERNAME
 os.makedirs(DRIVE_DS_PATH,exist_ok=True)
 NUM_CLASSES = 81313
 EFNS = [efn.EfficientNetB0, efn.EfficientNetB1, efn.EfficientNetB2, efn.EfficientNetB3, 
         efn.EfficientNetB4, efn.EfficientNetB5, efn.EfficientNetB6,efn.EfficientNetB7]
 
-# 3-----------------------
-train_16fold = pd.read_csv('./MyDrive/landmark/train_16fold.csv')
+# 3-----------------------loss weight
+# train_16fold = pd.read_csv('./MyDrive/landmark/train_16fold.csv')
+train_16fold = pd.read_csv('./data/dataTrain.csv')
 from collections import Counter
 landmarkIdCounter = dict(Counter(train_16fold['clean_landmark_id']))
 train_16fold['counts'] = [landmarkIdCounter[x] for x in train_16fold['clean_landmark_id']]

@@ -23,3 +23,9 @@ TRAINING(./notebooks)
 INFERENCE(./notebooks)
 
 You can refer 'export_model.ipynb' for exporting single model and ensemble model.
+
+# exp step   
+1. 拉tf镜像，换apt/pip源，安装依赖   
+2. parse list，parse data   
+3. 
+
