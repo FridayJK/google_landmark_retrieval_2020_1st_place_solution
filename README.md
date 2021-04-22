@@ -25,7 +25,7 @@ INFERENCE(./notebooks)
 You can refer 'export_model.ipynb' for exporting single model and ensemble model.
 
 # exp step   
-1. 拉tf镜像，换apt/pip源，安装依赖   
+1. 拉tf镜像，换apt/pip源，安装依赖   pandas/matplotlib/tensorflow_probability(tensorflow_probability==0.10.1)/sklearn/
 2. parse list，parse data   
 3. 
 

@@ -2,8 +2,8 @@ import math, re, os
 import tensorflow as tf
 import glob
 
-FOLDERNAME = 'index_tfrec'
-DATA_ROOT_PATH = '/mnt/data/GLDv2/'+FOLDERNAME+'/'
+FOLDERNAME = 'ctrain_tfrec'
+DATA_ROOT_PATH = '/workspace/mnt/storage/zhangjunkang/zjk3/data/GLDv2/'+FOLDERNAME+'/'
 os.makedirs(DATA_ROOT_PATH,exist_ok=True)
 # index_tfrec_file = "mnt/data/GLDv2/index.tfrec"
 

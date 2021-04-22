@@ -2,7 +2,7 @@
 import pandas as pd
 from collections import Counter
 
-train_clean = pd.read_csv('/mnt/data/GLDv2/train_labels/train_clean.csv')
+train_clean = pd.read_csv('/workspace/mnt/storage/zhangjunkang/zjk3/data/GLDv2/train_labels/train_labels/train_clean.csv')
 landmark_ids = train_clean['landmark_id']
 images = train_clean['images']
 

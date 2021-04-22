@@ -14,6 +14,7 @@ from sklearn.model_selection import train_test_split
 import random
 from sklearn.model_selection import GroupKFold
 import pickle
+import time
 # Detect hardware, return appropriate distribution strategy
 try:
     # TPU detection. No parameters necessary if TPU_NAME environment variable is
@@ -28,14 +29,16 @@ if tpu:
     strategy = tf.distribute.experimental.TPUStrategy(tpu)
 else:
     # Default distribution strategy in Tensorflow. Works on CPU and single GPU.
-    strategy = tf.distribute.get_strategy()
+    # strategy = tf.distribute.get_strategy()
+    strategy = tf.distribute.MirroredStrategy()
 print("REPLICAS: ", strategy.num_replicas_in_sync)
 # 2-----------------------
 AUTO = tf.data.experimental.AUTOTUNE
 IMAGE_SIZE = [512,512]
 EPOCHS = 2000
-BATCH_SIZE_PER_TPU = 8
-EFF_VER = 7
+BATCH_SIZE_PER_TPU = 8 
+# EFF_VER = 7
+EFF_VER = 0
 EMB_SIZE=512
 BATCH_SIZE = BATCH_SIZE_PER_TPU * strategy.num_replicas_in_sync
 FOLDERNAME = 'v2clean_sample'
@@ -46,6 +49,10 @@ NUM_CLASSES = 81313
 EFNS = [efn.EfficientNetB0, efn.EfficientNetB1, efn.EfficientNetB2, efn.EfficientNetB3, 
         efn.EfficientNetB4, efn.EfficientNetB5, efn.EfficientNetB6,efn.EfficientNetB7]
 
+# config = tf.compat.v1.ConfigProto()
+# config.gpu_options.per_process_gpu_memory_fraction = 0.9
+# session = tf.compat.v1.Session(config=config)
+
 # 3-----------------------loss weight
 # train_16fold = pd.read_csv('./MyDrive/landmark/train_16fold.csv')
 train_16fold = pd.read_csv('./data/dataTrain.csv')
@@ -55,14 +62,21 @@ train_16fold['counts'] = [landmarkIdCounter[x] for x in train_16fold['clean_land
 countIdList = []
 for key in sorted(landmarkIdCounter):
     countIdList.append(landmarkIdCounter[key])
-scaleV = 1/ np.mean(1/np.log(np.array(train_16fold['counts'])))
-lossWeight = tf.constant(scaleV/np.log(np.array(countIdList)))
+scaleV = 1/ np.mean(1/(np.log(np.array(train_16fold['counts']))))
+lossWeight = tf.constant(scaleV/(np.log(np.array(countIdList))))
 lossWeight = tf.tile(tf.expand_dims(lossWeight,0),tf.constant([BATCH_SIZE_PER_TPU,1]))
 
+landmark_id_transe_tab = {}
+i=0
+for key in sorted(landmarkIdCounter):
+    landmark_id_transe_tab[key] = i
+    i = i+1
+
 # 4-----------------------
-TRAIN_GCS_PATH = GCS_DS_PATH + '/v2clean_tfrecord_train'
+GCS_DS_PATH = "/workspace/mnt/storage/zhangjunkang/zjk3/data/GLDv2"
+TRAIN_GCS_PATH = GCS_DS_PATH + '/v2clean_tfrecord_train1'
 TRAIN_FILENAMES = tf.io.gfile.glob(TRAIN_GCS_PATH + '/*.tfrec')
-VALID_GCS_PATH = GCS_DS_PATH + '/v2clean_tfrecord_valid'
+VALID_GCS_PATH = GCS_DS_PATH + '/v2clean_tfrecord_valid1'
 VALID_FILENAMES = tf.io.gfile.glob(VALID_GCS_PATH + '/*.tfrec')
 
 # 5-----------------------data process
@@ -83,12 +97,15 @@ def read_labeled_tfrecord(example):
     LABELED_TFREC_FORMAT = {
         "_bits": tf.io.FixedLenFeature([], tf.string), # tf.string means bytestring
         "_class": tf.io.FixedLenFeature([], tf.int64),  # shape [] means single element
+        "_class_trans": tf.io.FixedLenFeature([], tf.int64),
         '_id': tf.io.FixedLenFeature([], tf.string)
     }
     example = tf.io.parse_single_example(example, LABELED_TFREC_FORMAT)
     image = decode_image(example['_bits'])
-    label = tf.cast(example['_class'],tf.int32)
-    return image, label
+    label = tf.cast(example['_class_trans'],tf.int32)
+    # label = tf.cast(example['_class'],tf.int32)
+    # return image, tf.constant([landmark_id_transe_tab[label.numpy()[0]]],dtype=tf.int32)
+    return image, label 
 
 def load_dataset(filenames, ordered=False):
     ignore_order = tf.data.Options()
@@ -104,7 +121,7 @@ def get_training_dataset():
     dataset = dataset.repeat() # the training dataset must repeat for several epochs
     dataset = dataset.map(img_aug, num_parallel_calls=AUTO)
     dataset = dataset.batch(BATCH_SIZE)
-    dataset = dataset.prefetch(AUTO) # prefetch next batch while training (autotune prefetch buffer size)
+    # dataset = dataset.prefetch(AUTO) # prefetch next batch while training (autotune prefetch buffer size)
     return dataset
 
 def get_validation_dataset():
@@ -112,14 +129,17 @@ def get_validation_dataset():
     dataset = dataset.repeat() # the training dataset must repeat for several epochs
     dataset = dataset.batch(BATCH_SIZE)
     dataset = dataset.prefetch(AUTO) # prefetch next batch while training (autotune prefetch buffer size)
+    # dataset = dataset.prefetch(BATCH_SIZE*4)
     return dataset
 
 def count_data_items(filenames):
     n = [int(re.compile(r"-([0-9]*)\.").search(filename).group(1)) for filename in filenames]
     return np.sum(n)
     
-NUM_TRAINING_IMAGES = count_data_items(TRAIN_FILENAMES)
-NUM_VALIDATION_IMAGES = count_data_items(VALID_FILENAMES)
+# NUM_TRAINING_IMAGES = count_data_items(TRAIN_FILENAMES)
+# NUM_VALIDATION_IMAGES = count_data_items(VALID_FILENAMES)
+NUM_TRAINING_IMAGES = len(TRAIN_FILENAMES)
+NUM_VALIDATION_IMAGES = len(VALID_FILENAMES)
 print('Dataset: {} training images'.format(NUM_TRAINING_IMAGES))
 print('Dataset: {} validation images'.format(NUM_VALIDATION_IMAGES))
 
@@ -147,7 +167,9 @@ def ArcFaceResNet():
     x = getefn()(x)
     x = L.GlobalAveragePooling2D()(x)
     x = L.Dense(EMB_SIZE, activation='swish')(x)
+    # x = L.Dense(EMB_SIZE, activation=tf.nn.sigmoid)(x)
     target = ArcMarginProduct_v2(NUM_CLASSES)(x)
+
     return tf.keras.Model(inputs, target)
 
 # 9-----------------------adacos
@@ -161,19 +183,28 @@ class adacosLoss:
         self.theta_zero = self.pi/4
         self.m = 0.5
     def getLoss(self, labels, logits, mode):
+        # print(labels.eval(session=tf.compat.v1.Session()))
         mask = tf.one_hot(tf.cast(labels, tf.int32), depth = NUM_CLASSES)
         theta = tf.math.acos(tf.clip_by_value(logits, -1.0 + 1e-7, 1.0 - 1e-7))
         B_avg =tf.where(mask==1,tf.zeros_like(logits), tf.math.exp(self.adacos_s * logits))
         B_avg = tf.reduce_mean(tf.reduce_sum(B_avg, axis=1), name='B_avg')
         B_avg = tf.stop_gradient(B_avg)
+        # tf.print(B_avg)
+        # tf.debugging.assert_all_finite(B_avg,"=======B_avg=========")
         theta_class = tf.gather_nd(theta, tf.stack([tf.range(tf.shape(labels)[0]), labels], axis=1),name='theta_class')
         theta_med = tfp.stats.percentile(theta_class, q=50)
         theta_med = tf.stop_gradient(theta_med)
         self.adacos_s=(tf.math.log(B_avg) / tf.cos(tf.minimum(self.theta_zero, theta_med)))
+        # print("tf.print(self.adacos_s):")
+        # tf.print(self.adacos_s)
         output = tf.multiply(self.adacos_s, logits, name='adacos_logits')        
         cce = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True,reduction=tf.keras.losses.Reduction.NONE)
+
+        # print("B_avg shape:{}".format(B_avg.shape))
+        # print("cce shape:{}".format(cce.shape))
         if mode=='train':
             loss = cce(labels, output, sample_weight = tf.gather_nd(lossWeight, tf.stack([tf.range(BATCH_SIZE_PER_TPU),labels], axis=1)))
+            # tf.debugging.assert_all_finite(loss,"=======cee output loss=========")
         else:
             loss = cce(labels, output)
         return loss   
@@ -182,23 +213,52 @@ class adacosLoss:
 with strategy.scope():
     model = ArcFaceResNet()
     optimizer = tf.keras.optimizers.SGD(1e-3, momentum=0.9,decay = 1e-5)
+    # optimizer = tf.keras.optimizers.SGD(0, momentum=0.9,decay = 1e-5)
     train_loss = tf.keras.metrics.Sum()
     valid_loss = tf.keras.metrics.Sum()
     def loss_fn(labels, predictions,mode='train'):
         _adacosLoss = adacosLoss()
+        # print("bef adacosLoss")
+        # print("tf.print(labels):")
+        # tf.print(labels)
+        # print("tf.print(predictions):")
+        # tf.print(predictions)
         per_example_loss = _adacosLoss.getLoss(labels, predictions,mode)
+        # print("tf.print(per_example_loss):")
+        # tf.print(per_example_loss)
+        # print("type per_example_loss:{}".format(type(per_example_loss)))
+        # print("per_example_loss shape:{}".format(per_example_loss.shape))
         return tf.nn.compute_average_loss(per_example_loss, global_batch_size= BATCH_SIZE)
     model.summary()
 
 # 11-----------------------
-STEPS_PER_TPU_CALL = NUM_TRAINING_IMAGES // BATCH_SIZE //4
-VALIDATION_STEPS_PER_TPU_CALL = NUM_VALIDATION_IMAGES // BATCH_SIZE
+# STEPS_PER_TPU_CALL = NUM_TRAINING_IMAGES // BATCH_SIZE //4
+# STEPS_PER_TPU_CALL = NUM_TRAINING_IMAGES // BATCH_SIZE //strategy.num_replicas_in_sync
+STEPS_PER_TPU_CALL = 1000
+# VALIDATION_STEPS_PER_TPU_CALL = NUM_VALIDATION_IMAGES // BATCH_SIZE
+VALIDATION_STEPS_PER_TPU_CALL = 100
 @tf.function
 def train_step(data_iter):
     def train_step_fn(images, labels):
         with tf.GradientTape() as tape:
+            # print("images shape:{}".format(images.shape))
+            # print("labels shape:{}".format(labels.shape))
+            # tf.debugging.assert_all_finite(images,"input image")
+            # tf.debugging.assert_all_finite(tf.cast(labels,dtype=tf.float32),"input label")
+            # print("tf.print(labels):")
+            # tf.print(labels)
+            # print("tf.print(images):")
+            # tf.print(images)
             cosine = model(images)
+            # print("tf.print(cosine):")
+            # print("cosine shape:{}".format(cosine.shape))
+            # tf.print(cosine)
             loss = loss_fn(labels, cosine)
+            # print("tf.print(loss):")
+            # tf.print(loss)
+            # sess = tf.compat.v1.Session()
+            # loss_np = sess.run(loss)
+            # print(type(loss.eval(session=tf.compat.v1.Session())))
         grads = tape.gradient(loss, model.trainable_variables)
         optimizer.apply_gradients(zip(grads, model.trainable_variables))
         #update metrics
@@ -221,14 +281,20 @@ def valid_step(data_iter):
 from collections import namedtuple
 train_dist_ds = strategy.experimental_distribute_dataset(get_training_dataset())
 valid_dist_ds = strategy.experimental_distribute_dataset(get_validation_dataset())
+
+STEPS_PER_EPOCH=STEPS_PER_TPU_CALL*strategy.num_replicas_in_sync                            #zjk, STEPS_PER_EPOCH?
 print("Training steps per epoch:", STEPS_PER_EPOCH, "in increments of", STEPS_PER_TPU_CALL)
+START_EPOCH = 0
 epoch = START_EPOCH
 train_data_iter = iter(train_dist_ds) # the training data iterator is repeated and it is not reset
                                       # for each validation run (same as model.fit)
 valid_data_iter = iter(valid_dist_ds)
 while True:
+    start_time = time.clock()
     train_step(train_data_iter)
-    print('|', end='', flush=True)
+    stop_time = time.clock()
+
+    print('per train_step time: {}'.format((stop_time-start_time)/STEPS_PER_TPU_CALL))
     valid_step(valid_data_iter)
     print('=', end='', flush=True)
     trainLossV = train_loss.result().numpy()/STEPS_PER_TPU_CALL
