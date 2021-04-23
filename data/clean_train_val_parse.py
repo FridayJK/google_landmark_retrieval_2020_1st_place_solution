@@ -2,7 +2,7 @@
 import pandas as pd
 from collections import Counter
 
-train_clean = pd.read_csv('/workspace/mnt/storage/zhangjunkang/zjk3/data/GLDv2/train_labels/train_labels/train_clean.csv')
+train_clean = pd.read_csv('/workspace/mnt/storage/zhangjunkang/gldv2/data/train_labels/train_labels/train_clean.csv')
 landmark_ids = train_clean['landmark_id']
 images = train_clean['images']
 
@@ -25,7 +25,7 @@ for i, img_id_list in enumerate(images):
 print("DataSet {} training imgs".format(len(train_list_land_id)))
 print("DataSet {} val imgs".format(len(val_list_land_id)))
 dataTrain = pd.DataFrame({'clean_landmark_id':train_list_land_id,'images':train_list_img_id})
-dataTrain.to_csv("./data/dataTrain.csv",sep=',')
+dataTrain.to_csv("/workspace/mnt/storage/zhangjunkang/gldv2/data/dataTrain_stage1.csv",sep=',')
 
 dataVal = pd.DataFrame({'clean_landmark_id':val_list_land_id,'images':val_list_img_id})
-dataVal.to_csv("./data/dataVal.csv",sep=',')
+dataVal.to_csv("/workspace/mnt/storage/zhangjunkang/gldv2/data/dataVal_stage1.csv",sep=',')
