@@ -51,7 +51,7 @@ else:
     DATA_ROOT_PATH = "./data/"
 print(DATA_ROOT_PATH)
 print("EFF Model index:{}, BATCH_SIZE_PER_GPU:{}".format(EFF_VER, BATCH_SIZE_PER_GPU))
-exit()
+
 FOLDERNAME = 'v2clean_models'
 DRIVE_DS_PATH = DATA_ROOT_PATH + FOLDERNAME
 os.makedirs(DRIVE_DS_PATH,exist_ok=True)
