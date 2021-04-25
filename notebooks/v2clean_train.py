@@ -39,8 +39,8 @@ print("REPLICAS: ", strategy.num_replicas_in_sync)
 AUTO = tf.data.experimental.AUTOTUNE
 IMAGE_SIZE = [512,512]
 EPOCHS = 2000
-BATCH_SIZE_PER_GPU = sys.argv[3] 
-EFF_VER = sys.argv[2]
+BATCH_SIZE_PER_GPU = int(sys.argv[3])
+EFF_VER = int(sys.argv[2])
 # EFF_VER = 0
 EMB_SIZE=512
 BATCH_SIZE = BATCH_SIZE_PER_GPU * strategy.num_replicas_in_sync
@@ -51,7 +51,6 @@ else:
     DATA_ROOT_PATH = "./data/"
 print(DATA_ROOT_PATH)
 print("EFF Model index:{}, BATCH_SIZE_PER_GPU:{}".format(EFF_VER, BATCH_SIZE_PER_GPU))
-
 FOLDERNAME = 'v2clean_models'
 DRIVE_DS_PATH = DATA_ROOT_PATH + FOLDERNAME
 os.makedirs(DRIVE_DS_PATH,exist_ok=True)
