@@ -39,19 +39,17 @@ print("REPLICAS: ", strategy.num_replicas_in_sync)
 AUTO = tf.data.experimental.AUTOTUNE
 IMAGE_SIZE = [512,512]
 EPOCHS = 2000
-BATCH_SIZE_PER_GPU = sys.argv[3] 
-EFF_VER = sys.argv[2]
+BATCH_SIZE_PER_TPU = 4 
+EFF_VER = 5
 # EFF_VER = 0
 EMB_SIZE=512
-BATCH_SIZE = BATCH_SIZE_PER_GPU * strategy.num_replicas_in_sync
+BATCH_SIZE = BATCH_SIZE_PER_TPU * strategy.num_replicas_in_sync
 
 if(len(sys.argv)>1):
     DATA_ROOT_PATH = sys.argv[1]
 else:
     DATA_ROOT_PATH = "./data/"
 print(DATA_ROOT_PATH)
-print("EFF Model index:{}, BATCH_SIZE_PER_GPU:{}".format(EFF_VER, BATCH_SIZE_PER_GPU))
-exit()
 FOLDERNAME = 'v2clean_models'
 DRIVE_DS_PATH = DATA_ROOT_PATH + FOLDERNAME
 os.makedirs(DRIVE_DS_PATH,exist_ok=True)
@@ -69,12 +67,13 @@ for key in sorted(landmarkIdCounter):
     countIdList.append(landmarkIdCounter[key])
 scaleV = 1/ np.mean(1/(np.log(np.array(train_16fold['counts']))))
 lossWeight = tf.constant(scaleV/(np.log(np.array(countIdList))))
-lossWeight = tf.tile(tf.expand_dims(lossWeight,0),tf.constant([BATCH_SIZE_PER_GPU,1]))
+lossWeight = tf.tile(tf.expand_dims(lossWeight,0),tf.constant([BATCH_SIZE_PER_TPU,1]))
 
 # 4-----------------------
-TRAIN_GCS_PATH = DATA_ROOT_PATH + 'v2clean_tfrecord_train'
+TFDATA_ROOT_PATH = "/workspace/mnt/storage/zhangjunkang/zjk3/data/GLDv2/"
+TRAIN_GCS_PATH = TFDATA_ROOT_PATH + 'v2clean_tfrecord_train1'
 TRAIN_FILENAMES = tf.io.gfile.glob(TRAIN_GCS_PATH + '/*.tfrec')
-VALID_GCS_PATH = DATA_ROOT_PATH + 'v2clean_tfrecord_valid'
+VALID_GCS_PATH = TFDATA_ROOT_PATH + 'v2clean_tfrecord_valid1'
 VALID_FILENAMES = tf.io.gfile.glob(VALID_GCS_PATH + '/*.tfrec')
 
 # 5-----------------------data process
@@ -195,7 +194,7 @@ class adacosLoss:
         output = tf.multiply(self.adacos_s, logits, name='adacos_logits')        
         cce = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True,reduction=tf.keras.losses.Reduction.NONE)
         if mode=='train':
-            loss = cce(labels, output, sample_weight = tf.gather_nd(lossWeight, tf.stack([tf.range(BATCH_SIZE_PER_GPU),labels], axis=1)))
+            loss = cce(labels, output, sample_weight = tf.gather_nd(lossWeight, tf.stack([tf.range(BATCH_SIZE_PER_TPU),labels], axis=1)))
             # tf.debugging.assert_all_finite(loss,"=======cee output loss=========")
         else:
             loss = cce(labels, output)
@@ -217,10 +216,10 @@ with strategy.scope():
     model.summary()
 
 # 11-----------------------
-STEPS_PER_TPU_CALL = NUM_TRAINING_IMAGES // BATCH_SIZE //4
-# STEPS_PER_TPU_CALL = 1000
-VALIDATION_STEPS_PER_TPU_CALL = NUM_VALIDATION_IMAGES // BATCH_SIZE
-# VALIDATION_STEPS_PER_TPU_CALL = 100
+# STEPS_PER_TPU_CALL = NUM_TRAINING_IMAGES // BATCH_SIZE //4
+STEPS_PER_TPU_CALL = 100
+# VALIDATION_STEPS_PER_TPU_CALL = NUM_VALIDATION_IMAGES // BATCH_SIZE
+VALIDATION_STEPS_PER_TPU_CALL = 10
 @tf.function
 def train_step(data_iter):
     def train_step_fn(images, labels):
