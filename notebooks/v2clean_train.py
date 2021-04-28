@@ -115,6 +115,7 @@ def load_dataset(filenames, ordered=False):
 
 def get_training_dataset():
     dataset = load_dataset(TRAIN_FILENAMES,ordered=False)
+    dataset = dataset.shuffle(1000)
     dataset = dataset.repeat() # the training dataset must repeat for several epochs
     dataset = dataset.map(img_aug, num_parallel_calls=AUTO)
     dataset = dataset.batch(BATCH_SIZE)
