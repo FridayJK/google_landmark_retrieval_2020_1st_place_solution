@@ -203,7 +203,7 @@ class adacosLoss:
 # 10-----------------------
 with strategy.scope():
     model = ArcFaceResNet()
-    optimizer = tf.keras.optimizers.SGD(1e-3, momentum=0.9,decay = 1e-5)
+    optimizer = tf.keras.optimizers.SGD(1e-4, momentum=0.9,decay = 1e-5)
     # optimizer = tf.keras.optimizers.SGD(0, momentum=0.9,decay = 1e-5)
     train_loss = tf.keras.metrics.Sum()
     valid_loss = tf.keras.metrics.Sum()

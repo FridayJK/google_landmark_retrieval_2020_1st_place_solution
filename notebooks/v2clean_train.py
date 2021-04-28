@@ -44,6 +44,8 @@ EFF_VER = int(sys.argv[2])
 # EFF_VER = 0
 EMB_SIZE=512
 BATCH_SIZE = BATCH_SIZE_PER_GPU * strategy.num_replicas_in_sync
+LR = float(sys.argv[4])
+FOLDERNAME = sys.argv[5]
 
 if(len(sys.argv)>1):
     DATA_ROOT_PATH = sys.argv[1]
@@ -51,7 +53,7 @@ else:
     DATA_ROOT_PATH = "./data/"
 print(DATA_ROOT_PATH)
 print("EFF Model index:{}, BATCH_SIZE_PER_GPU:{}".format(EFF_VER, BATCH_SIZE_PER_GPU))
-FOLDERNAME = 'v2clean_models'
+# FOLDERNAME = 'v2clean_models'
 DRIVE_DS_PATH = DATA_ROOT_PATH + FOLDERNAME
 os.makedirs(DRIVE_DS_PATH,exist_ok=True)
 NUM_CLASSES = 81313
@@ -203,7 +205,8 @@ class adacosLoss:
 # 10-----------------------
 with strategy.scope():
     model = ArcFaceResNet()
-    optimizer = tf.keras.optimizers.SGD(1e-3, momentum=0.9,decay = 1e-5)
+    optimizer = tf.keras.optimizers.SGD(LR, momentum=0.9,decay = 1e-5)
+    # optimizer = tf.keras.optimizers.SGD(1e-3, momentum=0.9,decay = 1e-5)
     # optimizer = tf.keras.optimizers.SGD(0, momentum=0.9,decay = 1e-5)
     train_loss = tf.keras.metrics.Sum()
     valid_loss = tf.keras.metrics.Sum()
