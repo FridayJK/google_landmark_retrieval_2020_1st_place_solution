@@ -149,7 +149,8 @@ class ArcMarginProduct_v2(tf.keras.layers.Layer):
         self.w = self.add_variable(
             "weights", shape=[int(input_shape[-1]), self.num_classes])
     def call(self, input):
-        cosine = tf.matmul(tf.nn.l2_normalize(input, axis=1), tf.nn.l2_normalize(self.w, axis=0))
+        # cosine = tf.matmul(tf.nn.l2_normalize(input, axis=1), tf.nn.l2_normalize(self.w, axis=0))
+        cosine = tf.matmul(input, self.w)
         return cosine
 
 # 7-----------------------
@@ -181,26 +182,28 @@ class adacosLoss:
         self.m = 0.5
     def getLoss(self, labels, logits, mode):
         # print(labels.eval(session=tf.compat.v1.Session()))
-        mask = tf.one_hot(tf.cast(labels, tf.int32), depth = NUM_CLASSES)
-        theta = tf.math.acos(tf.clip_by_value(logits, -1.0 + 1e-7, 1.0 - 1e-7))
-        B_avg =tf.where(mask==1,tf.zeros_like(logits), tf.math.exp(self.adacos_s * logits))
-        B_avg = tf.reduce_mean(tf.reduce_sum(B_avg, axis=1), name='B_avg')
-        B_avg = tf.stop_gradient(B_avg)
+        # mask = tf.one_hot(tf.cast(labels, tf.int32), depth = NUM_CLASSES)
+        # theta = tf.math.acos(tf.clip_by_value(logits, -1.0 + 1e-7, 1.0 - 1e-7))
+        # B_avg =tf.where(mask==1,tf.zeros_like(logits), tf.math.exp(self.adacos_s * logits))
+        # B_avg = tf.reduce_mean(tf.reduce_sum(B_avg, axis=1), name='B_avg')
+        # B_avg = tf.stop_gradient(B_avg)
         # tf.print(B_avg)
         # tf.debugging.assert_all_finite(B_avg,"=======B_avg=========")
-        theta_class = tf.gather_nd(theta, tf.stack([tf.range(tf.shape(labels)[0]), labels], axis=1),name='theta_class')
-        theta_med = tfp.stats.percentile(theta_class, q=50)
-        theta_med = tf.stop_gradient(theta_med)
-        self.adacos_s=(tf.math.log(B_avg) / tf.cos(tf.minimum(self.theta_zero, theta_med)))
+        # theta_class = tf.gather_nd(theta, tf.stack([tf.range(tf.shape(labels)[0]), labels], axis=1),name='theta_class')
+        # theta_med = tfp.stats.percentile(theta_class, q=50)
+        # theta_med = tf.stop_gradient(theta_med)
+        # self.adacos_s=(tf.math.log(B_avg) / tf.cos(tf.minimum(self.theta_zero, theta_med)))
         # print("tf.print(self.adacos_s):")
         # tf.print(self.adacos_s)
-        output = tf.multiply(self.adacos_s, logits, name='adacos_logits')        
+        # output = tf.multiply(self.adacos_s, logits, name='adacos_logits')        
         cce = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True,reduction=tf.keras.losses.Reduction.NONE)
         if mode=='train':
-            loss = cce(labels, output, sample_weight = tf.gather_nd(lossWeight, tf.stack([tf.range(BATCH_SIZE_PER_GPU),labels], axis=1)))
+            # loss = cce(labels, output, sample_weight = tf.gather_nd(lossWeight, tf.stack([tf.range(BATCH_SIZE_PER_GPU),labels], axis=1)))
+            loss = cce(labels, logits, sample_weight = tf.gather_nd(lossWeight, tf.stack([tf.range(BATCH_SIZE_PER_GPU),labels], axis=1)))
             # tf.debugging.assert_all_finite(loss,"=======cee output loss=========")
         else:
-            loss = cce(labels, output)
+            # loss = cce(labels, output)
+            loss = cce(labels, logits)
         return loss   
 
 # 10-----------------------
