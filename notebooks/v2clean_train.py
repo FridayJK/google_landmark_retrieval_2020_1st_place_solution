@@ -46,6 +46,7 @@ EMB_SIZE=512
 BATCH_SIZE = BATCH_SIZE_PER_GPU * strategy.num_replicas_in_sync
 LR = float(sys.argv[4])
 FOLDERNAME = sys.argv[5]
+Pre_Train_Model = sys.argv[6]
 
 if(len(sys.argv)>1):
     DATA_ROOT_PATH = sys.argv[1]
@@ -149,8 +150,8 @@ class ArcMarginProduct_v2(tf.keras.layers.Layer):
         self.w = self.add_variable(
             "weights", shape=[int(input_shape[-1]), self.num_classes])
     def call(self, input):
-        cosine = tf.matmul(tf.nn.l2_normalize(input, axis=1), tf.nn.l2_normalize(self.w, axis=0))
-        # cosine = tf.matmul(input, self.w)
+        # cosine = tf.matmul(tf.nn.l2_normalize(input, axis=1), tf.nn.l2_normalize(self.w, axis=0))
+        cosine = tf.matmul(input, self.w)
         return cosine
 
 # 7-----------------------
@@ -209,6 +210,11 @@ class adacosLoss:
 # 10-----------------------
 with strategy.scope():
     model = ArcFaceResNet()
+    if(Pre_Train_Model=="no"):
+        print("train from begin")
+    else:
+        print("train from scratch")
+        model.load_weights(Pre_Train_Model)
     optimizer = tf.keras.optimizers.SGD(LR, momentum=0.9,decay = 1e-5)
     # optimizer = tf.keras.optimizers.SGD(1e-3, momentum=0.9,decay = 1e-5)
     # optimizer = tf.keras.optimizers.SGD(0, momentum=0.9,decay = 1e-5)
