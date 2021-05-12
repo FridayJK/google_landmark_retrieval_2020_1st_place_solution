@@ -116,7 +116,7 @@ def load_dataset(filenames, ordered=False):
 
 def get_training_dataset():
     dataset = load_dataset(TRAIN_FILENAMES,ordered=False)
-    dataset = dataset.shuffle(1000)
+    dataset = dataset.shuffle(10000)
     dataset = dataset.repeat() # the training dataset must repeat for several epochs
     dataset = dataset.map(img_aug, num_parallel_calls=AUTO)
     dataset = dataset.batch(BATCH_SIZE)
@@ -165,7 +165,7 @@ def ArcFaceResNet():
     x= inputs = tf.keras.Input([*IMAGE_SIZE, 3], name='input_image')
     x = getefn()(x)
     x = L.GlobalAveragePooling2D()(x)
-    x = L.Dense(EMB_SIZE, activation='swish')(x)
+    x = L.Dense(EMB_SIZE, activation=None, use_bias=False)(x)
     # x = L.Dense(EMB_SIZE, activation=tf.nn.sigmoid)(x)
     target = ArcMarginProduct_v2(NUM_CLASSES)(x)
 
