@@ -214,7 +214,7 @@ with strategy.scope():
         print("train from begin")
     else:
         print("train from scratch")
-        model.load_weights(Pre_Train_Model)
+        model.load_weights(Pre_Train_Model, by_name=True)
     optimizer = tf.keras.optimizers.SGD(LR, momentum=0.9,decay = 1e-5)
     # optimizer = tf.keras.optimizers.SGD(1e-3, momentum=0.9,decay = 1e-5)
     # optimizer = tf.keras.optimizers.SGD(0, momentum=0.9,decay = 1e-5)
