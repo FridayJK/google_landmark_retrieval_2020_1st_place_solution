@@ -156,8 +156,8 @@ class ArcMarginProduct_v2(tf.keras.layers.Layer):
 
 # 7-----------------------
 def getefn():
-    # pretrained_model = EFNS[EFF_VER](weights=None, include_top=False ,input_shape=[*IMAGE_SIZE, 3])
-    pretrained_model = EFNS[EFF_VER](weights=Pre_Train_Model, include_top=False ,input_shape=[*IMAGE_SIZE, 3])
+    pretrained_model = EFNS[EFF_VER](weights=None, include_top=False ,input_shape=[*IMAGE_SIZE, 3])
+    # pretrained_model = EFNS[EFF_VER](weights=Pre_Train_Model, include_top=False ,input_shape=[*IMAGE_SIZE, 3])
     pretrained_model.trainable = True
     return pretrained_model
 
