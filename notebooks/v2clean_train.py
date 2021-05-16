@@ -116,7 +116,7 @@ def load_dataset(filenames, ordered=False):
 
 def get_training_dataset():
     dataset = load_dataset(TRAIN_FILENAMES,ordered=False)
-    dataset = dataset.shuffle(1000)
+    dataset = dataset.shuffle(10000)
     dataset = dataset.repeat() # the training dataset must repeat for several epochs
     dataset = dataset.map(img_aug, num_parallel_calls=AUTO)
     dataset = dataset.batch(BATCH_SIZE)
@@ -156,8 +156,8 @@ class ArcMarginProduct_v2(tf.keras.layers.Layer):
 
 # 7-----------------------
 def getefn():
-    # pretrained_model = EFNS[EFF_VER](weights=None, include_top=False ,input_shape=[*IMAGE_SIZE, 3])
-    pretrained_model = EFNS[EFF_VER](weights='imagenet', include_top=False ,input_shape=[*IMAGE_SIZE, 3])
+    pretrained_model = EFNS[EFF_VER](weights=None, include_top=False ,input_shape=[*IMAGE_SIZE, 3])
+    # pretrained_model = EFNS[EFF_VER](weights=Pre_Train_Model, include_top=False ,input_shape=[*IMAGE_SIZE, 3])
     pretrained_model.trainable = True
     return pretrained_model
 
@@ -166,7 +166,7 @@ def ArcFaceResNet():
     x= inputs = tf.keras.Input([*IMAGE_SIZE, 3], name='input_image')
     x = getefn()(x)
     x = L.GlobalAveragePooling2D()(x)
-    x = L.Dense(EMB_SIZE, activation='swish')(x)
+    x = L.Dense(EMB_SIZE, activation=None, use_bias=False)(x)
     # x = L.Dense(EMB_SIZE, activation=tf.nn.sigmoid)(x)
     target = ArcMarginProduct_v2(NUM_CLASSES)(x)
 
@@ -215,7 +215,7 @@ with strategy.scope():
         print("train from begin")
     else:
         print("train from scratch")
-        model.load_weights(Pre_Train_Model)
+        model.load_weights(Pre_Train_Model, by_name=True)
     optimizer = tf.keras.optimizers.SGD(LR, momentum=0.9,decay = 1e-5)
     # optimizer = tf.keras.optimizers.SGD(1e-3, momentum=0.9,decay = 1e-5)
     # optimizer = tf.keras.optimizers.SGD(0, momentum=0.9,decay = 1e-5)
