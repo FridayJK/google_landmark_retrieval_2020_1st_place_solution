@@ -46,6 +46,7 @@ EMB_SIZE=512
 BATCH_SIZE = BATCH_SIZE_PER_GPU * strategy.num_replicas_in_sync
 LR = float(sys.argv[4])
 FOLDERNAME = sys.argv[5]
+Pre_Train_Model = sys.argv[6]
 
 if(len(sys.argv)>1):
     DATA_ROOT_PATH = sys.argv[1]
@@ -155,7 +156,8 @@ class ArcMarginProduct_v2(tf.keras.layers.Layer):
 
 # 7-----------------------
 def getefn():
-    pretrained_model = EFNS[EFF_VER](weights=None, include_top=False ,input_shape=[*IMAGE_SIZE, 3])
+    # pretrained_model = EFNS[EFF_VER](weights=None, include_top=False ,input_shape=[*IMAGE_SIZE, 3])
+    pretrained_model = EFNS[EFF_VER](weights='imagenet', include_top=False ,input_shape=[*IMAGE_SIZE, 3])
     pretrained_model.trainable = True
     return pretrained_model
 
@@ -187,8 +189,8 @@ class adacosLoss:
         # B_avg =tf.where(mask==1,tf.zeros_like(logits), tf.math.exp(self.adacos_s * logits))
         # B_avg = tf.reduce_mean(tf.reduce_sum(B_avg, axis=1), name='B_avg')
         # B_avg = tf.stop_gradient(B_avg)
-        # # tf.print(B_avg)
-        # # tf.debugging.assert_all_finite(B_avg,"=======B_avg=========")
+        # tf.print(B_avg)
+        # tf.debugging.assert_all_finite(B_avg,"=======B_avg=========")
         # theta_class = tf.gather_nd(theta, tf.stack([tf.range(tf.shape(labels)[0]), labels], axis=1),name='theta_class')
         # theta_med = tfp.stats.percentile(theta_class, q=50)
         # theta_med = tf.stop_gradient(theta_med)
@@ -209,6 +211,11 @@ class adacosLoss:
 # 10-----------------------
 with strategy.scope():
     model = ArcFaceResNet()
+    if(Pre_Train_Model=="no"):
+        print("train from begin")
+    else:
+        print("train from scratch")
+        model.load_weights(Pre_Train_Model)
     optimizer = tf.keras.optimizers.SGD(LR, momentum=0.9,decay = 1e-5)
     # optimizer = tf.keras.optimizers.SGD(1e-3, momentum=0.9,decay = 1e-5)
     # optimizer = tf.keras.optimizers.SGD(0, momentum=0.9,decay = 1e-5)
@@ -223,7 +230,8 @@ with strategy.scope():
     model.summary()
 
 # 11-----------------------
-STEPS_PER_TPU_CALL = NUM_TRAINING_IMAGES // BATCH_SIZE //4
+# STEPS_PER_TPU_CALL = NUM_TRAINING_IMAGES // BATCH_SIZE //4
+STEPS_PER_TPU_CALL = NUM_TRAINING_IMAGES // BATCH_SIZE
 # STEPS_PER_TPU_CALL = 1000
 VALIDATION_STEPS_PER_TPU_CALL = NUM_VALIDATION_IMAGES // BATCH_SIZE
 # VALIDATION_STEPS_PER_TPU_CALL = 100
