@@ -5,5 +5,6 @@ echo $3
 echo $4
 echo $5
 echo $6
-python ./notebooks/v2clean_train.py $1 $2 $3 $4 $5 $6
+echo $7
+python $1 $2 $3 $4 $5 $6 $7
 
