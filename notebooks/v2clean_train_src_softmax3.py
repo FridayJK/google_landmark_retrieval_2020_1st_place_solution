@@ -160,6 +160,8 @@ def getefn():
     if(len(Pre_Train_Model.split("/"))>6):
         if(Pre_Train_Model.split("/")[6]=="efficientnet"):
             pretrained_model = EFNS[EFF_VER](weights=Pre_Train_Model, include_top=False ,input_shape=[*IMAGE_SIZE, 3])
+        else:
+            pretrained_model = EFNS[EFF_VER](weights=None, include_top=False ,input_shape=[*IMAGE_SIZE, 3])
     else:
         pretrained_model = EFNS[EFF_VER](weights=None, include_top=False ,input_shape=[*IMAGE_SIZE, 3])
     pretrained_model.trainable = True
