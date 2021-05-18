@@ -150,8 +150,8 @@ class ArcMarginProduct_v2(tf.keras.layers.Layer):
         self.w = self.add_variable(
             "weights", shape=[int(input_shape[-1]), self.num_classes])
     def call(self, input):
-        cosine = tf.matmul(tf.nn.l2_normalize(input, axis=1), tf.nn.l2_normalize(self.w, axis=0))
-        # cosine = tf.matmul(input, self.w)
+        # cosine = tf.matmul(tf.nn.l2_normalize(input, axis=1), tf.nn.l2_normalize(self.w, axis=0))
+        cosine = tf.matmul(input, self.w)
         return cosine
 
 # 7-----------------------
