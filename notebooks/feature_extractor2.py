@@ -17,11 +17,14 @@ import pickle
 import time
 import sys
 
-BATCH = 32
+gpus = tf.config.experimental.list_physical_devices('GPU')
+tf.config.experimental.set_visible_devices(gpus[1], 'GPU')
+
+BATCH = 64
 EMB_SIZE = 512
 NUM_CLASSES = 81313
 IMAGE_SIZE = [512,512]
-EFF_VER = 7
+EFF_VER = 3
 EFNS = [efn.EfficientNetB0, efn.EfficientNetB1, efn.EfficientNetB2, efn.EfficientNetB3, 
         efn.EfficientNetB4, efn.EfficientNetB5, efn.EfficientNetB6,efn.EfficientNetB7]
 
@@ -64,8 +67,8 @@ def ArcFaceResNet():
     # target = ArcMarginProduct_v2(NUM_CLASSES)(x)
     return tf.keras.Model(inputs, x)
 
-MODEL_VERSION_DIR = "A100_M7init_e2_softmax1"
-MODEL_VERSION_HD5 = "weights.epoch03.loss0.2133.valid_loss0.8527"
+MODEL_VERSION_DIR = "2080_M3e3_adacos_s1-2_check"
+MODEL_VERSION_HD5 = "weights.epoch01.loss1.4287.valid_loss1.8910"
 model = ArcFaceResNet()
 # model.load_weights('./data/GLDv2_models/efficientnet-b3_weights_tf_dim_ordering_tf_kernels_autoaugment_notop.h5',by_name=True)
 # model.load_weights('./models/GLDv2_models2/2080_m3init_e2_softmax_dense3/weights.epoch03.loss0.2655.valid_loss0.9343.hdf5',by_name=True)
