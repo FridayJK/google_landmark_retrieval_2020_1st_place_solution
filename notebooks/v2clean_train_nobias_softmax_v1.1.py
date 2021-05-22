@@ -37,7 +37,7 @@ else:
 print("REPLICAS: ", strategy.num_replicas_in_sync)
 # 2-----------------------
 AUTO = tf.data.experimental.AUTOTUNE
-# IMAGE_SIZE = [512,512]
+INPUT_IMAGE_SIZE = [512,512]
 IMAGE_SIZE = [556,556]
 EPOCHS = 2000
 BATCH_SIZE_PER_GPU = int(sys.argv[3])
@@ -161,17 +161,17 @@ def getefn():
     # pretrained_model = EFNS[EFF_VER](weights=None, include_top=False ,input_shape=[*IMAGE_SIZE, 3])
     if(len(Pre_Train_Model.split("/"))>6):
         if(Pre_Train_Model.split("/")[6]=="efficientnet"):
-            pretrained_model = EFNS[EFF_VER](weights=Pre_Train_Model, include_top=False ,input_shape=[*IMAGE_SIZE, 3])
+            pretrained_model = EFNS[EFF_VER](weights=Pre_Train_Model, include_top=False ,input_shape=[*INPUT_IMAGE_SIZE, 3])
         else:
-            pretrained_model = EFNS[EFF_VER](weights=None, include_top=False ,input_shape=[*IMAGE_SIZE, 3])
+            pretrained_model = EFNS[EFF_VER](weights=None, include_top=False ,input_shape=[*INPUT_IMAGE_SIZE, 3])
     else:
-        pretrained_model = EFNS[EFF_VER](weights=None, include_top=False ,input_shape=[*IMAGE_SIZE, 3])
+        pretrained_model = EFNS[EFF_VER](weights=None, include_top=False ,input_shape=[*INPUT_IMAGE_SIZE, 3])
     pretrained_model.trainable = True
     return pretrained_model
 
 # 8-----------------------ArcFace
 def ArcFaceResNet():
-    x= inputs = tf.keras.Input([*IMAGE_SIZE, 3], name='input_image')
+    x= inputs = tf.keras.Input([*INPUT_IMAGE_SIZE, 3], name='input_image')
     x = getefn()(x)
     x = L.GlobalAveragePooling2D()(x)
     # x = L.Dense(EMB_SIZE, activation='swish')(x)
