@@ -37,10 +37,11 @@ else:
 print("REPLICAS: ", strategy.num_replicas_in_sync)
 # 2-----------------------
 AUTO = tf.data.experimental.AUTOTUNE
-IMAGE_SIZE = [512,512]
+INPUT_IMAGE_SIZE = [512,512]
+IMAGE_SIZE = [556,556]
 EPOCHS = 2000
 BATCH_SIZE_PER_TPU = 1 
-EFF_VER = 3
+EFF_VER = 7
 # EFF_VER = 0
 EMB_SIZE=512
 BATCH_SIZE = BATCH_SIZE_PER_TPU * strategy.num_replicas_in_sync
@@ -100,6 +101,7 @@ def decode_image(image_data):
     image = tf.image.resize(image, IMAGE_SIZE)
     image = normalize_image(image)
     image = tf.reshape(image, [*IMAGE_SIZE, 3])
+    image = tf.image.random_crop(image, [512, 512, 3])
     return image
 def img_aug(image, label):
     img = tf.image.random_flip_left_right(image)
@@ -166,13 +168,15 @@ class ArcMarginProduct_v2(tf.keras.layers.Layer):
 
 # 7-----------------------
 def getefn():
-    pretrained_model = EFNS[EFF_VER](weights=None, include_top=False ,input_shape=[*IMAGE_SIZE, 3])
+    # pretrained_model = EFNS[EFF_VER](weights=None, include_top=False ,input_shape=[*IMAGE_SIZE, 3])
+    pretrained_model = EFNS[EFF_VER](weights='/workspace/mnt/storage/zhangjunkang/gldv2/efficientnet/efficientnet-b7_weights_tf_dim_ordering_tf_kernels_autoaugment_notop.h5', include_top=False ,input_shape=[*INPUT_IMAGE_SIZE, 3])
+    
     pretrained_model.trainable = True
     return pretrained_model
 
 # 8-----------------------ArcFace
 def ArcFaceResNet():
-    x= inputs = tf.keras.Input([*IMAGE_SIZE, 3], name='input_image')
+    x= inputs = tf.keras.Input([*INPUT_IMAGE_SIZE, 3], name='input_image')
     x = getefn()(x)
     x = L.GlobalAveragePooling2D()(x)
     x = L.Dense(EMB_SIZE, activation='swish')(x)
@@ -235,7 +239,7 @@ with strategy.scope():
 STEPS_PER_TPU_CALL = 100
 # VALIDATION_STEPS_PER_TPU_CALL = NUM_VALIDATION_IMAGES // BATCH_SIZE
 VALIDATION_STEPS_PER_TPU_CALL = 10
-@tf.function
+# @tf.function
 def train_step(data_iter):
     def train_step_fn(images, labels):
         with tf.GradientTape() as tape:
