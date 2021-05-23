@@ -32,9 +32,16 @@ if tpu:
 else:
     # Default distribution strategy in Tensorflow. Works on CPU and single GPU.
     # strategy = tf.distribute.get_strategy()
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    for gpu in gpus:
+        print("gpu:{}".format(gpu))
+        tf.config.experimental.set_memory_growth(gpu, True)
     strategy = tf.distribute.MirroredStrategy()
     # strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy()
 print("REPLICAS: ", strategy.num_replicas_in_sync)
+
+
+
 # 2-----------------------
 AUTO = tf.data.experimental.AUTOTUNE
 INPUT_IMAGE_SIZE = [512,512]
@@ -90,10 +97,10 @@ def decode_image(image_data):
     image = tf.image.resize(image, IMAGE_SIZE)
     image = normalize_image(image)
     image = tf.reshape(image, [*IMAGE_SIZE, 3])
+    image = tf.image.random_crop(image, [512, 512, 3])
     return image
 def img_aug(image, label):
     img = tf.image.random_flip_left_right(image)
-    img = tf.image.random_crop(img, [512, 512, 3])
     return img, label
 def read_labeled_tfrecord(example):
     LABELED_TFREC_FORMAT = {
@@ -118,7 +125,7 @@ def load_dataset(filenames, ordered=False):
 
 def get_training_dataset():
     dataset = load_dataset(TRAIN_FILENAMES,ordered=False)
-    dataset = dataset.shuffle(10000)
+    dataset = dataset.shuffle(2000)
     dataset = dataset.repeat() # the training dataset must repeat for several epochs
     dataset = dataset.map(img_aug, num_parallel_calls=AUTO)
     dataset = dataset.batch(BATCH_SIZE)
