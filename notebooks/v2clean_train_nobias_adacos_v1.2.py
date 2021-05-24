@@ -32,10 +32,10 @@ if tpu:
 else:
     # Default distribution strategy in Tensorflow. Works on CPU and single GPU.
     # strategy = tf.distribute.get_strategy()
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    for gpu in gpus:
-        print("gpu:{}".format(gpu))
-        tf.config.experimental.set_memory_growth(gpu, True)
+    # gpus = tf.config.experimental.list_physical_devices('GPU')
+    # for gpu in gpus:
+    #     print("gpu:{}".format(gpu))
+    #     tf.config.experimental.set_memory_growth(gpu, True)
     strategy = tf.distribute.MirroredStrategy()
     # strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy()
 print("REPLICAS: ", strategy.num_replicas_in_sync)
