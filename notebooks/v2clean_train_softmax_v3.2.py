@@ -199,7 +199,8 @@ def ArcFaceResNet():
     x = getefn()(x)
     x = L.GlobalAveragePooling2D()(x)
     # x = L.Dense(EMB_SIZE, activation='swish')(x)
-    x = L.Dense(EMB_SIZE, activation=None, use_bias=False)(x)
+    # x = L.Dense(EMB_SIZE, activation=None, use_bias=False)(x)
+    x = L.Dense(EMB_SIZE, activation='swish', use_bias=False)(x)
     # x = L.Dense(EMB_SIZE, activation=tf.nn.sigmoid)(x)
     target = ArcMarginProduct_v2(NUM_CLASSES)(x)
 
