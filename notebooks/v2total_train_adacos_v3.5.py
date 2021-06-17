@@ -63,8 +63,7 @@ else:
     DATA_ROOT_PATH = "./data/"
 print(DATA_ROOT_PATH)
 print("EFF Model index:{}, BATCH_SIZE_PER_GPU:{}".format(EFF_VER, BATCH_SIZE_PER_GPU))
-# FOLDERNAME = 'v2clean_models'
-DRIVE_DS_PATH = DATA_ROOT_PATH + FOLDERNAME
+DRIVE_DS_PATH = "/workspace/mnt/storage/zhangjunkang/gldv2/model/s2/" + FOLDERNAME
 os.makedirs(DRIVE_DS_PATH,exist_ok=True)
 NUM_CLASSES = 203094
 EFNS = [efn.EfficientNetB0, efn.EfficientNetB1, efn.EfficientNetB2, efn.EfficientNetB3, 
