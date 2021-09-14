@@ -14,18 +14,23 @@ def get_arguments():
     args.add_argument('--pre_trained_weights_path', type=str, default="pre_trained_weights/EfficientNet_pytorch/")
     args.add_argument('--loss_type', type=str, default="softmax", choices=['softmax', 'adacos'])
     args.add_argument('--scheduler', type=str, default="stepLR", choices=['stepLR', 'multiStepLR'])
-    args.add_argument('--lr', type=float, default=0.001)
+    args.add_argument('--lr', type=float, default=0.01)
     args.add_argument('--min_lr', type=float, default=1e-5)
     args.add_argument('--momentum', type=float, default=0.9)
     args.add_argument('--weight_decay', type=float, default=1e-5)
     args.add_argument('--epochs', type=int, default=50)
-    args.add_argument('--batch_per_gpu', type=int, default=16)
+    args.add_argument('--batch_size', type=int, default=16)
 
     args.add_argument('--root_path', type=str, default="/workspace/mnt/storage/zhangjunkang/gldv1/gldv2/")
     args.add_argument('--data_list', type=str, default="dataTrain_stage1.txt")
     args.add_argument('--data_list_val', type=str, default="dataVal_stage1.txt")
-    args.add_argument('--model_save_path', type=str, default="models/")
+    args.add_argument('--model_save_path', type=str, default="/workspace/mnt/storage/zhangjunkang/gldv2/model/pytorch/")
     
     args.add_argument('--work_mode', type=str, default="train", choices=['train', 'test'])
+    args.add_argument('--local_rank', default=0, type=int, help='node rank for distributed training')
+    args.add_argument('--nprocs', default=1, type=int, help='number of workers')
+    args.add_argument('--init_method', default='tcp://127.0.0.1:23456', help="init-method")
+
+    args.add_argument('--train_note', type=str, default="test1")
 
     return args.parse_args()

@@ -1,18 +1,22 @@
 import math, re, os, sys
+# os.environ['WORLD_SIZE'] = '1'
+# os.environ['RANK'] = '1'
+
 import numpy as np
 import pandas as pd
 from PIL import Image
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 import math
+import time
 
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 from torch.nn import Parameter
 import torch.nn.functional as F
+from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.optim as optim
-# import torch.optim.lr_scheduler as lr_scheduler
 import torchvision.transforms as transforms
 import torchvision.models as models
 from torchvision import transforms, utils
@@ -21,13 +25,6 @@ from torch.utils.data import Dataset, DataLoader, dataloader
 import torch.distributed as dist
 
 from efficientnet_pytorch import EfficientNet
-
-from sklearn import metrics
-from sklearn.model_selection import train_test_split
-import random
-from sklearn.model_selection import GroupKFold
-import pickle
-import time
 
 # print(os.getcwd())
 sys.path.append(os.getcwd())
@@ -47,7 +44,14 @@ NUM_CLASS = args.num_class
 PRE_TRAIN_WEIGHT_PATH = args.pre_trained_weights_path
 ROOT_PATH = args.root_path
 
-device = torch.device("cuda:0")
+# 0. set up distributed device
+rank = int(os.environ["RANK"])
+local_rank = int(os.environ["LOCAL_RANK"])
+torch.cuda.set_device(rank % torch.cuda.device_count())
+dist.init_process_group(backend="nccl")
+device = torch.device("cuda", local_rank)
+
+print(f"[init] == local rank: {local_rank}, global rank: {rank} ==")
 
 def reduce_mean(tensor, nprocs):
     rt = tensor.clone()
@@ -115,38 +119,29 @@ def default_loader(path):
 def train(args):
 
     dist.init_process_group(backend='nccl', init_method='tcp://localhost:23456', rank=0, world_size=1)
-    dist.init_process_group(backend='nccl')
+    # dist.init_process_group(backend='nccl')
     #set one gpu id
-    # torch.cuda.set_device(args.local_rank)
+    
     
     #
     emb_net   = efficientEmbNet(NET_ID, EMB_SIZE)
     metric_fc = adaCos(NUM_CLASS)
     criterion = nn.CrossEntropyLoss()
 
-    local_rank = 0
-    device_ids_g = [0, 1]
-    batch_per_cpu = args.batch_size/torch.cuda.device_count()
-    emb_net    = nn.parallel.DistributedDataParallel(emb_net, device_ids=device_ids_g, output_device=local_rank)
-    metric_fc  = metric_fc.cuda(local_rank)
-    criterion  = criterion.cuda(local_rank)
+    # local_rank = 0
+    # device_ids_g = [0, 1]
+
+    emb_net.to(device)
+    emb_net    = nn.parallel.DistributedDataParallel(emb_net, device_ids=[local_rank], output_device=local_rank)
+    # emb_net    = nn.parallel.DistributedDataParallel(emb_net)
+    metric_fc  = metric_fc.to(device)
+    criterion  = criterion.to(device)
 
     #train scheduler----------------------------------------------------------------------------------------------
-    # optimizer = optim.SGD(emb_net.parameters(), lr=0.01, momentum=0.9)
     optimizer = optim.SGD(emb_net.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=args.min_lr)
-    # scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.7, patience=3, verbose=True)
 
     cudnn.benchmark = True
-
-    # for name_, params_ in emb_net.named_parameters():
-    #     print(name_)
-    #     print(params_)
-    # eff_model.cuda()
-    # eff_model.eval()
-    #to onnx
-    # onnx_name = "efficientnet-b0.onnx"
-    # onnx_conv.eff_conv2onnx(eff_model, onnx_name, 9)
 
     data_list       = args.data_list
     data_list_val   = args.data_list_val
@@ -154,21 +149,19 @@ def train(args):
     #data process
     train_data    = data_loader.trainset(ROOT_PATH + "train_rar", data_list, loader=default_loader)
     train_sampler = torch.utils.data.distributed.DistributedSampler(train_data, shuffle = True)
-    train_loader  = DataLoader(train_data, batch_size=batch_per_cpu, shuffle=True, num_workers=8, pin_memory=True, sampler=train_sampler)
+    train_loader  = DataLoader(train_data, batch_size=args.batch_size, num_workers=8, pin_memory=True, sampler=train_sampler)
     val_data      = data_loader.trainset(ROOT_PATH + "train_rar", data_list_val, loader=default_loader)
     val_sampler   = torch.utils.data.distributed.DistributedSampler(val_data, shuffle = True)
-    val_loader    = DataLoader(val_data, batch_size=batch_per_cpu, shuffle=True, num_workers=8, pin_memory=True, sampler=val_sampler)
+    val_loader    = DataLoader(val_data, batch_size=args.batch_size, num_workers=8, pin_memory=True, sampler=val_sampler)
     
- 
-
     #train--------------------------------------------------------------------------------------------------------
     log = pd.DataFrame(index=[], columns=['epoch', 'lr', 'loss', 'val_loss'])
 
-    mode_list = ["train", "val"]
-    losses_train =  utilsEMB.AverageMeter()
-    losses_val =  utilsEMB.AverageMeter()
-    losses = [losses_train, losses_val]
-    data_loder    = [train_loader, val_loader]
+    mode_list    = ["train", "val"]
+    losses_train = utilsEMB.AverageMeter()
+    losses_val   = utilsEMB.AverageMeter()
+    losses       = [losses_train, losses_val]
+    data_loder   = [train_loader, val_loader]
     
     for epoch in range(args.epochs):
         current_time = time.strftime('%H:%M:%S', time.localtime(time.time()))
@@ -176,8 +169,8 @@ def train(args):
         scheduler.step()
         losses[0].reset()
         losses[1].reset()
-        train_loader.sampler.set_epoch(epoch)
-        val_loader.sampler.set_epoch(epoch)
+        data_loder[0].sampler.set_epoch(epoch)
+        data_loder[1].sampler.set_epoch(epoch)
 
         for i, mod in enumerate(mode_list):
             if(mod == "train"):
@@ -188,18 +181,18 @@ def train(args):
                 metric_fc.eval()
             losses[i].reset()
             for datas, labels in tqdm(data_loder[i]):
-                datas  = datas.cuda(local_rank)
-                labels = labels.cuda(local_rank)
+                datas  = datas.to(device)
+                labels = labels.to(device)
 
                 features = emb_net(datas)
                 logits = metric_fc(labels, features)
                 loss   = criterion(logits, labels)
 
-                torch.distributed.barrier()
-                reduced_loss = reduce_mean(loss, args.nprocs)
+                # torch.distributed.barrier()
+                # reduced_loss = reduce_mean(loss, args.nprocs)
 
-                losses[i].update(reduced_loss.item(), datas.shape[0])
-                print("{} loss {}".format(mode_list[i], reduced_loss.item()))
+                losses[i].update(loss.item(), datas.shape[0])
+                print("{} loss {}".format(mode_list[i], loss.item()))
                 
                 if(mod == "train"):
                     optimizer.zero_grad()
