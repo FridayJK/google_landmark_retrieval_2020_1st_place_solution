@@ -187,9 +187,9 @@ def train(args):
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
-                j+=1
-                if(j>100):
-                    break
+                # j+=1
+                # if(j>100):
+                #     break
 
         scheduler.step()
 
