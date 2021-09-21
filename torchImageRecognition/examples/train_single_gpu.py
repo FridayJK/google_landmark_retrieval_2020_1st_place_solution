@@ -40,11 +40,6 @@ NUM_CLASS = args.num_class
 PRE_TRAIN_WEIGHT_PATH = args.pre_trained_weights_path
 ROOT_PATH = args.root_path
 
-# 0. set up distributed device
-# rank = int(os.environ["RANK"])
-# local_rank = int(os.environ["LOCAL_RANK"])
-# torch.cuda.set_device(rank % torch.cuda.device_count())
-# dist.init_process_group(backend="nccl")
 device = torch.device("cuda", args.local_rank)
 
 def reduce_mean(tensor, nprocs):
@@ -114,7 +109,7 @@ def default_loader(path):
 def train(args):
 
     # dist.init_process_group(backend='nccl', init_method='tcp://localhost:23456', rank=0, world_size=1)
-    dist.init_process_group(backend='nccl', init_method='env://')
+    # dist.init_process_group(backend='nccl', init_method='env://')
     print("local_rank:{}".format(args.local_rank))
     #
     emb_net   = efficientEmbNet(NET_ID, EMB_SIZE)
@@ -123,7 +118,7 @@ def train(args):
 
     emb_net.to(device)
     # emb_net    = nn.parallel.DistributedDataParallel(emb_net)
-    emb_net    = nn.parallel.DistributedDataParallel(emb_net, device_ids=[args.local_rank], output_device=args.local_rank)
+    # emb_net    = nn.parallel.DistributedDataParallel(emb_net, device_ids=[args.local_rank], output_device=args.local_rank)
     # metric_fc  = metric_fc.to(device)
     metric_fc  = metric_fc.to(device)
     criterion  = criterion.to(device)
@@ -143,12 +138,11 @@ def train(args):
     data_list_val   = args.data_list_val
     model_save_path = args.model_save_path
     #data process
-    train_data    = data_loader.trainset(ROOT_PATH + "train_rar", data_list, loader=default_loader)
-    train_sampler = torch.utils.data.distributed.DistributedSampler(train_data)
-    train_loader  = DataLoader(train_data, batch_size=args.batch_size, num_workers=8, pin_memory=True, sampler=train_sampler)
+    train_data = data_loader.trainset(ROOT_PATH + "train_rar", data_list, loader=default_loader)
+    train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True, num_workers=8)
+
     val_data      = data_loader.trainset(ROOT_PATH + "train_rar", data_list_val, loader=default_loader)
-    val_sampler   = torch.utils.data.distributed.DistributedSampler(val_data)
-    val_loader    = DataLoader(val_data, batch_size=args.batch_size, num_workers=8, pin_memory=True, sampler=val_sampler)
+    val_loader    = DataLoader(val_data, batch_size=args.batch_size, shuffle=True, num_workers=8, pin_memory=True)
     
     #train--------------------------------------------------------------------------------------------------------
     log = pd.DataFrame(index=[], columns=['epoch', 'lr', 'loss', 'val_loss'])
@@ -163,8 +157,8 @@ def train(args):
     for epoch in range(args.epochs):
         losses[0].reset()
         losses[1].reset()
-        data_loder[0].sampler.set_epoch(epoch)
-        data_loder[1].sampler.set_epoch(epoch)
+        # data_loder[0].sampler.set_epoch(epoch)
+        # data_loder[1].sampler.set_epoch(epoch)
         for i, mod in enumerate(mode_list):
             j=0
             if(mod == "train"):
