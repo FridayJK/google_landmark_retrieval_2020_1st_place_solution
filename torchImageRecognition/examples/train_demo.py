@@ -166,7 +166,6 @@ def train(args):
         data_loder[0].sampler.set_epoch(epoch)
         data_loder[1].sampler.set_epoch(epoch)
         for i, mod in enumerate(mode_list):
-            j=0
             if(mod == "train"):
                 emb_net.train()
                 metric_fc.train()
@@ -174,7 +173,11 @@ def train(args):
                 emb_net.eval()
                 metric_fc.eval()
             losses[i].reset()
-            for datas, labels in tqdm(data_loder[i]):
+            j=0
+            for datas, labels in data_loder[i]:
+                j+=1
+                if(j>=10):
+                    break
                 datas  = datas.to(device)
                 labels = labels.to(device)
 
@@ -189,9 +192,6 @@ def train(args):
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
-                # j+=1
-                # if(j>100):
-                #     break
 
         scheduler.step()
 
