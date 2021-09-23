@@ -16,35 +16,25 @@
 
 Metrics are written to stdout.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import sys
 
-from absl import app
-from delf.python.datasets.google_landmarks_dataset import dataset_file_io
-from delf.python.datasets.google_landmarks_dataset import metrics
+import metrics
+import dataset_file_io
 
 cmd_args = None
 
-
-def main(argv):
-  if len(argv) > 1:
-    raise RuntimeError('Too many command-line arguments.')
-
+def main(args):
   # Read solution.
   print('Reading solution...')
   public_solution, private_solution, ignored_ids = dataset_file_io.ReadSolution(
-      cmd_args.solution_path, dataset_file_io.RETRIEVAL_TASK_ID)
+      args.solution_path, dataset_file_io.RETRIEVAL_TASK_ID)
   print('done!')
 
   # Read predictions.
   print('Reading predictions...')
   public_predictions, private_predictions = dataset_file_io.ReadPredictions(
-      cmd_args.predictions_path, set(public_solution.keys()),
+      args.predictions_path, set(public_solution.keys()),
       set(private_solution.keys()), set(ignored_ids),
       dataset_file_io.RETRIEVAL_TASK_ID)
   print('done!')
@@ -82,14 +72,12 @@ def main(argv):
   print('(Private) Mean position: %.2f, median position: %.2f' %
         (private_mean_position, private_median_position))
 
-
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.register('type', 'bool', lambda v: v.lower() == 'true')
   parser.add_argument(
       '--predictions_path',
       type=str,
-      default='/tmp/predictions.csv',
+      default='/workspace/mnt/storage/zhangjunkang/zjk3/data/GLDv2/test_labels/retrieval_solution_v2.1.csv',
       help="""
       Path to CSV predictions file, formatted with columns 'id,images' (the
       file should include a header).
@@ -97,10 +85,10 @@ if __name__ == '__main__':
   parser.add_argument(
       '--solution_path',
       type=str,
-      default='/tmp/solution.csv',
+      default='/workspace/mnt/storage/zhangjunkang/zjk3/data/GLDv2/test_labels/retrieval_solution_v2.1.csv',
       help="""
       Path to CSV solution file, formatted with columns 'id,images,Usage'
       (the file should include a header).
       """)
-  cmd_args, unparsed = parser.parse_known_args()
-  app.run(main=main, argv=[sys.argv[0]] + unparsed)
+  args = parser.parse_args()
+  main(args)

@@ -17,18 +17,12 @@
 Metrics are written to stdout.
 """
 
-# from __future__ import absolute_import
-# from __future__ import division
-# from __future__ import print_function
-
 import argparse
 import sys
 
 from absl import app
 import metrics
 import dataset_file_io
-from dataset_file_io import *
-from metrics import *
 
 cmd_args = None
 
