@@ -19,3 +19,19 @@ class trainset(Dataset):
     
     def __len__(self):
         return len(self.data_list)
+
+class testset(Dataset):
+    def __init__(self, root_path, data_list, loader = None):
+        self.data_list = data_list
+        self.root_path = root_path
+        self.data_loader = loader
+
+    def __getitem__(self, index):
+        filename   = self.data_list[index]
+        filename   = filename[0] +"/"+ filename[1] +"/"+ filename[2] +"/"+ filename + ".jpg"
+        img_tensor = self.data_loader(os.path.join(self.root_path, filename))
+
+        return img_tensor
+    
+    def __len__(self):
+        return len(self.data_list)
