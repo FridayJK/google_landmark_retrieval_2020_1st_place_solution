@@ -17,24 +17,25 @@
 Metrics are written to stdout.
 """
 import argparse
-import sys
-
+import sys, os
+sys.path.append(os.getcwd())
+sys.path.append("./torchImageRecognition/eval/gldv2")
 import metrics
 import dataset_file_io
 
 cmd_args = None
 
-def main(args):
+def metric_gldv2(predictions_path, solution_path = '/workspace/mnt/storage/zhangjunkang/zjk3/data/GLDv2/test_labels/retrieval_solution_v2.1.csv'):
   # Read solution.
   print('Reading solution...')
   public_solution, private_solution, ignored_ids = dataset_file_io.ReadSolution(
-      args.solution_path, dataset_file_io.RETRIEVAL_TASK_ID)
+      solution_path, dataset_file_io.RETRIEVAL_TASK_ID)
   print('done!')
 
   # Read predictions.
   print('Reading predictions...')
   public_predictions, private_predictions = dataset_file_io.ReadPredictions(
-      args.predictions_path, set(public_solution.keys()),
+      predictions_path, set(public_solution.keys()),
       set(private_solution.keys()), set(ignored_ids),
       dataset_file_io.RETRIEVAL_TASK_ID)
   print('done!')
@@ -91,4 +92,4 @@ if __name__ == '__main__':
       (the file should include a header).
       """)
   args = parser.parse_args()
-  main(args)
+  metric_gldv2(args.predictions_path, args.solution_path)
