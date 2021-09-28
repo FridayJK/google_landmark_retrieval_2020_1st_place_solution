@@ -81,7 +81,7 @@ class efficientEmbNet(nn.Module):
     def __init__(self, NET_ID, EMB_SIZE, re_train=False, pre_trained_model_path=""):
         super(efficientEmbNet, self).__init__()
         self.base_net = EfficientNet.from_pretrained(EFF_MODELS[NET_ID], weights_path= os.path.join(ROOT_PATH, PRE_TRAIN_WEIGHT_PATH, EFF_MODEL_NAMES[NET_ID]), num_classes=EMB_SIZE)
-        # self.arcMargin = ArcMarginProduct_v2(EMB_SIZE,NUM_CLASS)
+        self.arcMargin = ArcMarginProduct_v2(EMB_SIZE,NUM_CLASS)
         if(re_train):
             dict_model = torch.load(pre_trained_model_path)
             self.base_net.load_state_dict(dict_model)
@@ -197,8 +197,9 @@ def train(args):
     return 0
 
 def extract_feat(data_path, data_list, model_path):
-    emb_net   = efficientEmbNet(NET_ID, EMB_SIZE)
-    emb_net.load_state_dict(torch.load(model_path), strict=False)
+    emb_net = efficientEmbNet(NET_ID, EMB_SIZE)
+    emb_net = nn.DataParallel(emb_net)
+    emb_net.load_state_dict(torch.load(model_path))
     emb_net.to(device)
     cudnn.benchmark = True
 
@@ -213,7 +214,10 @@ def extract_feat(data_path, data_list, model_path):
     with torch.no_grad():
         for i, datas in enumerate(val_loader):
             datas   = datas.to(device)
+            time1 = time.time()
             feature = emb_net(datas)
+            time2 = time.time()
+            print("batch:{}, time:{}".format(batch_size, time2 - time1))
             if(feature.shape[0] == batch_size):
                 begin = i*batch_size
                 end   = begin+batch_size

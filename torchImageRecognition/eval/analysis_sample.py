@@ -1,6 +1,5 @@
 import math, re, os, sys, time
-# os.environ['WORLD_SIZE'] = '1'
-# os.environ['RANK'] = '1'
+import multiprocessing
 
 import numpy as np
 import pandas as pd
@@ -25,9 +24,11 @@ from efficientnet_pytorch import EfficientNet
 
 # print(os.getcwd())
 sys.path.append(os.getcwd())
+sys.path.append("/root/google_landmark_retrieval_2020_1st_place_solution")
 from torchImageRecognition.utils import onnx_conv, utilsEMB
-from torchImageRecognition.dataset import data_loader
-from configure import get_arguments
+from torchImageRecognition.datasets import data_loader
+from torchImageRecognition.examples.configure import get_arguments
+from torchImageRecognition.eval.gldv2.compute_retrieval_metrics import metric_gldv2
 
 EFF_MODELS = ['efficientnet-b0','efficientnet-b1','efficientnet-b2','efficientnet-b3','efficientnet-b4','efficientnet-b5','efficientnet-b6']
 EFF_MODEL_NAMES = ["efficientnet-b0-355c32eb.pth", "efficientnet-b1-f1951068.pth", "efficientnet-b2-8bb594d6.pth", "efficientnet-b3-5fb5a3c3.pth", "efficientnet-b4-6ed6700e.pth", "efficientnet-b5-b6417697.pth", "efficientnet-b6-c76e70fd.pth"]
@@ -40,18 +41,8 @@ NUM_CLASS = args.num_class
 PRE_TRAIN_WEIGHT_PATH = args.pre_trained_weights_path
 ROOT_PATH = args.root_path
 
-# 0. set up distributed device
-# rank = int(os.environ["RANK"])
-# local_rank = int(os.environ["LOCAL_RANK"])
-# torch.cuda.set_device(rank % torch.cuda.device_count())
-# dist.init_process_group(backend="nccl")
 device = torch.device("cuda", args.local_rank)
 
-def reduce_mean(tensor, nprocs):
-    rt = tensor.clone()
-    dist.all_reduce(rt, op=dist.ReduceOp.SUM)
-    rt /= nprocs
-    return rt
 
 class ArcMarginProduct_v2(nn.Module):
     def __init__(self, in_features, NUM_CLASS):
@@ -85,6 +76,7 @@ class adaCos(torch.nn.Module):
 
         return logit
 
+
 class efficientEmbNet(nn.Module):
     def __init__(self, NET_ID, EMB_SIZE, re_train=False, pre_trained_model_path=""):
         super(efficientEmbNet, self).__init__()
@@ -96,8 +88,8 @@ class efficientEmbNet(nn.Module):
         
     def forward(self, x):
         feature = self.base_net(x)
-        logits  = self.arcMargin(feature)
-        return logits
+        # logits  = self.arcMargin(feature)
+        return feature
 
 #data loader------------------------------------------------------------------------------------------------------------------------
 # normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
@@ -112,19 +104,12 @@ def default_loader(path):
 
 #train-------------------------------------------------------------------------------------------------------------------------------
 def train(args):
-
-    # dist.init_process_group(backend='nccl', init_method='tcp://localhost:23456', rank=0, world_size=1)
-    dist.init_process_group(backend='nccl', init_method='env://')
-    print("local_rank:{}".format(args.local_rank))
     #
     emb_net   = efficientEmbNet(NET_ID, EMB_SIZE)
     metric_fc = adaCos(NUM_CLASS)
     criterion = nn.CrossEntropyLoss()
 
     emb_net.to(device)
-    # emb_net    = nn.parallel.DistributedDataParallel(emb_net)
-    emb_net    = nn.parallel.DistributedDataParallel(emb_net, device_ids=[args.local_rank], output_device=args.local_rank)
-    # metric_fc  = metric_fc.to(device)
     metric_fc  = metric_fc.to(device)
     criterion  = criterion.to(device)
 
@@ -143,12 +128,11 @@ def train(args):
     data_list_val   = args.data_list_val
     model_save_path = args.model_save_path
     #data process
-    train_data    = data_loader.trainset(ROOT_PATH + "train_rar", data_list, loader=default_loader)
-    train_sampler = torch.utils.data.distributed.DistributedSampler(train_data)
-    train_loader  = DataLoader(train_data, batch_size=args.batch_size, num_workers=8, pin_memory=True, sampler=train_sampler)
+    train_data = data_loader.trainset(ROOT_PATH + "train_rar", data_list, loader=default_loader)
+    train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True, num_workers=8)
+
     val_data      = data_loader.trainset(ROOT_PATH + "train_rar", data_list_val, loader=default_loader)
-    val_sampler   = torch.utils.data.distributed.DistributedSampler(val_data)
-    val_loader    = DataLoader(val_data, batch_size=args.batch_size, num_workers=8, pin_memory=True, sampler=val_sampler)
+    val_loader    = DataLoader(val_data, batch_size=args.batch_size, shuffle=True, num_workers=8, pin_memory=True)
     
     #train--------------------------------------------------------------------------------------------------------
     log = pd.DataFrame(index=[], columns=['epoch', 'lr', 'loss', 'val_loss'])
@@ -163,9 +147,8 @@ def train(args):
     for epoch in range(args.epochs):
         losses[0].reset()
         losses[1].reset()
-        data_loder[0].sampler.set_epoch(epoch)
-        data_loder[1].sampler.set_epoch(epoch)
         for i, mod in enumerate(mode_list):
+            j=0
             if(mod == "train"):
                 emb_net.train()
                 metric_fc.train()
@@ -173,11 +156,7 @@ def train(args):
                 emb_net.eval()
                 metric_fc.eval()
             losses[i].reset()
-            j=0
-            for datas, labels in data_loder[i]:
-                j+=1
-                if(j>=10):
-                    break
+            for datas, labels in tqdm(data_loder[i]):
                 datas  = datas.to(device)
                 labels = labels.to(device)
 
@@ -192,6 +171,9 @@ def train(args):
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
+                # j+=1
+                # if(j>100):
+                #     break
 
         scheduler.step()
 
@@ -200,7 +182,7 @@ def train(args):
         save_path = args.model_save_path + EFF_MODELS[args.net_id] + args.train_note
         os.makedirs(save_path, exist_ok=True)
         if(args.local_rank == 0):
-            torch.save(emb_net.module.state_dict(), os.path.join(save_path, EFF_MODELS[args.net_id] + "epoch" + str(epoch) + ".pth"))
+            torch.save(emb_net.state_dict(), os.path.join(save_path, EFF_MODELS[args.net_id] + "epoch" + str(epoch) + ".pth"))
             # onnx_conv.eff_conv2onnx(emb_net, base_name + ".onnx", 9)
 
             tmp = pd.Series([
@@ -214,13 +196,68 @@ def train(args):
         
     return 0
 
-def test():
-    return 0
+def extract_feat(data_path, data_list, model_path):
+    emb_net = efficientEmbNet(NET_ID, EMB_SIZE)
+    # deviceCpu = torch.device('cpu')
+    emb_net = nn.DataParallel(emb_net)
+    emb_net.load_state_dict(torch.load(model_path))
+    emb_net.to(device)
+    cudnn.benchmark = True
 
+    #--------------------------------
+    batch_size = 1
+    val_data      = data_loader.testset(data_path, data_list, loader=default_loader)
+    val_loader    = DataLoader(val_data, batch_size=batch_size, shuffle=False, num_workers=1, pin_memory=True)
+    
+    emb_net.eval()
+
+    features = np.empty([len(data_list), EMB_SIZE], dtype="float32")
+    with torch.no_grad():
+        for i, datas in enumerate(val_loader):
+            datas   = datas.to(device)
+            feature = emb_net(datas)
+            if(feature.shape[0] == batch_size):
+                begin = i*batch_size
+                end   = begin+batch_size
+                features[begin:end,:] = feature.cpu().numpy()
+            else:
+                begin = i*batch_size
+                end   = begin+feature.shape[0]
+                features[begin:end,:] = feature.cpu().numpy()
+            print((i+1)*batch_size)
+        
+    return features
+
+def test(model_path):
+    root_path = "/workspace/mnt/storage/zhangjunkang/zjk3/data/GLDv2/"
+    #test
+    test_imgs = ["9265ec6df51a366e", "a1788046694b0213"]
+    test_feat = extract_feat(root_path + "test_rar", test_imgs, model_path) ###
+    
+    #index
+    index_imgs = ["13b75d49867d477d", "39cfce5ff10cb8f6", "47a85cbcf8498050", "4ec41677d8c53e8d", "86a9a6e34db800a5", "9eaa4285a8b9611b", "c277d7703879de9c"]
+    index_feat = extract_feat(root_path + "index_rar", index_imgs, model_path)       ###
+
+    #exec retrieval
+    test_feat = test_feat/np.linalg.norm(test_feat,2,1)[:,None]
+    index_feat = index_feat/np.linalg.norm(index_feat,2,1)[:,None]
+    sim_mat = np.inner(test_feat,index_feat)
+    sim_mat_list = [x for x in sim_mat]
+    pool = multiprocessing.Pool(processes=64)
+    sort_idx = pool.map(np.argsort, sim_mat_list)
+    sim_mat_sorted = pool.map(np.sort, sim_mat_list)
+    pool.close()
+    pool.join()
+    sort_idx = np.vstack(sort_idx)
+    sort_idx = sort_idx[:,::-1]
+    topK_index = sort_idx[:,0:100].tolist()
 
 if __name__ == '__main__':
 
-    if(args.work_mode == "train"):
-        train(args)
-    elif(args.work_mode == "test"):
-        test()
+    # if(args.work_mode == "train"):
+    #     train(args)
+    # elif(args.work_mode == "test"):
+    model_root_path = "/workspace/mnt/storage/zhangjunkang/gldv2/model/pytorch/efficientnet-b0test4/"
+    model_list = ["efficientnet-b0epoch9.pth", "efficientnet-b0epoch19.pth", "efficientnet-b0epoch29.pth", "efficientnet-b0epoch39.pth", "efficientnet-b0epoch49.pth"]
+    for model in model_list:
+        test(model_root_path + model)
