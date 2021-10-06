@@ -179,11 +179,7 @@ def train(args):
                 emb_net.eval()
                 metric_fc.eval()
             losses[i].reset()
-            j=0
             for datas, labels in data_loder[i]:
-                j+=1
-                if(j>=10):
-                    break
                 datas  = datas.to(device)
                 labels = labels.to(device)
 
