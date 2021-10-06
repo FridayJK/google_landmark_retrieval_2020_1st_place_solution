@@ -13,6 +13,7 @@ def get_arguments():
     args.add_argument('--from_scratch', type=bool, default=False)
     args.add_argument('--pre_trained_weights_path', type=str, default="pre_trained_weights/EfficientNet_pytorch/")
     args.add_argument('--loss_type', type=str, default="adacos", choices=['softmax', 'adacos'])
+    args.add_argument('--use_LossWeight', action="store_true", help="useLossWeight or not")
     args.add_argument('--scheduler', type=str, default="stepLR", choices=['stepLR', 'multiStepLR', "CosineAnnealing"])
     args.add_argument('--stepLR_step', type=int, default=10)
     args.add_argument('--multiStepLR_step', nargs="+", default=[10, 25])

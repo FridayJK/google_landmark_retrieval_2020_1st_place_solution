@@ -25,8 +25,8 @@ from efficientnet_pytorch import EfficientNet
 
 # print(os.getcwd())
 sys.path.append(os.getcwd())
-from torchImageRecognition.utils import onnx_conv, utilsEMB
-from torchImageRecognition.dataset import data_loader
+from torchImageRecognition.utils import onnx_conv, utilsEMB, lossWeights
+from torchImageRecognition.datasets import data_loader
 from configure import get_arguments
 
 EFF_MODELS = ['efficientnet-b0','efficientnet-b1','efficientnet-b2','efficientnet-b3','efficientnet-b4','efficientnet-b5','efficientnet-b6']
@@ -41,6 +41,8 @@ PRE_TRAIN_WEIGHT_PATH = args.pre_trained_weights_path
 ROOT_PATH = args.root_path
 
 device = torch.device("cuda", args.local_rank)
+
+loss_weights = lossWeights.loss_weight(os.path.join(ROOT_PATH, "train_rar", args.data_list))
 
 def reduce_mean(tensor, nprocs):
     rt = tensor.clone()
@@ -114,7 +116,8 @@ def train(args):
     #
     emb_net   = efficientEmbNet(NET_ID, EMB_SIZE)
     metric_fc = adaCos(NUM_CLASS)
-    criterion = nn.CrossEntropyLoss()
+    # criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(weight=loss_weights)
 
     emb_net.to(device)
     # emb_net    = nn.parallel.DistributedDataParallel(emb_net)

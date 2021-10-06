@@ -5,4 +5,5 @@ python -m torch.distributed.launch \
 --net_id=0 \
 --batch_size=8 \
 --train_note="debug" \
---lr=0.001
+--lr=0.001 \
+--use_LossWeight

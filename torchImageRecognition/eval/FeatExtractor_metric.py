@@ -294,7 +294,7 @@ if __name__ == '__main__':
     # if(args.work_mode == "train"):
     #     train(args)
     # elif(args.work_mode == "test"):
-    model_root_path = "/workspace/mnt/storage/zhangjunkang/gldv2/model/pytorch/efficientnet-b0test4/"
-    model_list = ["efficientnet-b0epoch9.pth", "efficientnet-b0epoch19.pth", "efficientnet-b0epoch29.pth", "efficientnet-b0epoch39.pth", "efficientnet-b0epoch49.pth"]
+    model_root_path = "/workspace/mnt/storage/zhangjunkang/gldv2/model/pytorch/efficientnet-b0test2/"
+    model_list = ["efficientnet-b0epoch0.pth","efficientnet-b0epoch9.pth", "efficientnet-b0epoch19.pth", "efficientnet-b0epoch29.pth", "efficientnet-b0epoch39.pth", "efficientnet-b0epoch49.pth"]
     for model in model_list:
         test(model_root_path + model)
