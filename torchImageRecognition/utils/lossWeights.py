@@ -5,9 +5,12 @@ import pandas as pd
 import torch
 from collections import Counter
 
-def loss_weight(list_path):
+def loss_weight(list_path, data_argument):
     # train_fold = pd.read_csv("/workspace/mnt/storage/zhangjunkang/gldv1/gldv2/train_rar/dataTrain_stage1.txt", sep=" ", header=None, names=["images", "clean_landmark_id"])
-    train_fold = pd.read_csv(list_path, sep=" ", header=None, names=["images", "clean_landmark_id"])
+    if(data_argument):
+        train_fold = pd.read_csv(list_path, sep=" ", header=None, names=["images", "clean_landmark_id", "mark_aug"])
+    else:
+        train_fold = pd.read_csv(list_path, sep=" ", header=None, names=["images", "clean_landmark_id"])
     landmarkIdCounter = dict(Counter(train_fold['clean_landmark_id']))
     train_fold['counts'] = [landmarkIdCounter[x] for x in train_fold['clean_landmark_id']]
     countIdList = []

@@ -42,7 +42,7 @@ ROOT_PATH = args.root_path
 
 device = torch.device("cuda", args.local_rank)
 
-loss_weights = lossWeights.loss_weight(os.path.join(ROOT_PATH, "train_rar", args.data_list))
+loss_weights = lossWeights.loss_weight(os.path.join(ROOT_PATH, "train_rar", args.data_list), args.data_argument)
 
 def reduce_mean(tensor, nprocs):
     rt = tensor.clone()
@@ -103,9 +103,8 @@ preprocess = transforms.Compose([transforms.ToTensor(), normalize, transforms.Ra
 
 preprocess_aug1 = transforms.Compose([transforms.ToTensor(), normalize, transforms.RandomHorizontalFlip(0.5)])
 preprocess_aug1.transforms.append(transforms.RandomResizedCrop([512,], scale=(0.6,1.0)))
-preprocess_aug1.transforms.append(cutOut.Cutout(1, 100))
-# preprocess_aug2 = transforms.Compose([transforms.ToTensor(), normalize, transforms.RandomHorizontalFlip(0.5)])
 preprocess_aug1.transforms.append(transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3))
+preprocess_aug1.transforms.append(cutOut.Cutout(1, 100))
 # preprocess_aug2.transforms.append(transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 3)))
 
 
