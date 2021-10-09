@@ -11,12 +11,16 @@ class trainset(Dataset):
         self.data_loader = loader
 
     def __getitem__(self, index):
-        filename, label = self.data_list[index].split(" ")
-        img_tensor = self.data_loader(os.path.join(self.root_path, filename))
-        target = int(label.strip())
+        file_info = self.data_list[index].split(" ")
+        if(len(file_info)==2):
+            filename, label = file_info
+            img_tensor = self.data_loader(os.path.join(self.root_path, filename)) 
+        elif(len(file_info)==3):
+            filename, label, mark_augment = file_info
+            img_tensor = self.data_loader(os.path.join(self.root_path, filename), bool(int(mark_augment.strip())))
 
-        return img_tensor, target
-    
+        return img_tensor, int(label.strip())
+
     def __len__(self):
         return len(self.data_list)
 

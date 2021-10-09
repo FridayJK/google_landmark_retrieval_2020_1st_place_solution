@@ -198,7 +198,7 @@ def train(args):
 
 def extract_feat(data_path, data_list, model_path):
     emb_net = efficientEmbNet(NET_ID, EMB_SIZE)
-    emb_net = nn.DataParallel(emb_net)
+    # emb_net = nn.DataParallel(emb_net)
     emb_net.load_state_dict(torch.load(model_path))
     emb_net.to(device)
     cudnn.benchmark = True
@@ -217,7 +217,7 @@ def extract_feat(data_path, data_list, model_path):
             time1 = time.time()
             feature = emb_net(datas)
             time2 = time.time()
-            print("batch:{}, time:{}".format(batch_size, time2 - time1))
+            # print("batch:{}, time:{}".format(batch_size, time2 - time1))
             if(feature.shape[0] == batch_size):
                 begin = i*batch_size
                 end   = begin+batch_size
@@ -226,7 +226,7 @@ def extract_feat(data_path, data_list, model_path):
                 begin = i*batch_size
                 end   = begin+feature.shape[0]
                 features[begin:end,:] = feature.cpu().numpy()
-            print((i+1)*batch_size)
+            # print((i+1)*batch_size)
         
     return features
 
@@ -294,7 +294,7 @@ if __name__ == '__main__':
     # if(args.work_mode == "train"):
     #     train(args)
     # elif(args.work_mode == "test"):
-    model_root_path = "/workspace/mnt/storage/zhangjunkang/gldv2/model/pytorch/efficientnet-b0test2/"
-    model_list = ["efficientnet-b0epoch0.pth","efficientnet-b0epoch9.pth", "efficientnet-b0epoch19.pth", "efficientnet-b0epoch29.pth", "efficientnet-b0epoch39.pth", "efficientnet-b0epoch49.pth"]
+    model_root_path = "/workspace/mnt/storage/zhangjunkang/gldv2/model/pytorch/efficientnet-b3test5_net3/"
+    model_list = ["efficientnet-b3epoch30.pth","efficientnet-b3epoch35.pth", "efficientnet-b3epoch40.pth", "efficientnet-b3epoch45.pth", "efficientnet-b3epoch49.pth"]
     for model in model_list:
         test(model_root_path + model)

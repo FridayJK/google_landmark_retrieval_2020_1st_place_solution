@@ -2,7 +2,7 @@ import pandas as pd
 from collections import Counter
 import numpy as np
 
-train_clean = pd.read_csv('/workspace/mnt/storage/zhangjunkang/gldv2/data/train_labels/train_labels/train_clean.csv')
+train_clean = pd.read_csv('/workspace/mnt/storage/zhangjunkang/gldv2/data/train_labels/train_clean.csv')
 landmark_ids = train_clean['landmark_id']
 images = train_clean['images']
 
@@ -16,6 +16,8 @@ for i, img_id_list in enumerate(images):
 for i in range(100):
     print("sample num>={}' class count {}".format(i*100, data_count[i*100:].sum()))
 
+for i in range(100):
+    print("sample num<={}' class count {}".format(i, data_count[0:(i+1)].sum()))
 
 all_sample = 0
 sample_a16 = 0

@@ -25,7 +25,7 @@ from efficientnet_pytorch import EfficientNet
 
 # print(os.getcwd())
 sys.path.append(os.getcwd())
-from torchImageRecognition.utils import onnx_conv, utilsEMB, lossWeights
+from torchImageRecognition.utils import onnx_conv, utilsEMB, lossWeights, cutOut
 from torchImageRecognition.datasets import data_loader
 from configure import get_arguments
 
@@ -99,11 +99,24 @@ class efficientEmbNet(nn.Module):
 #data loader------------------------------------------------------------------------------------------------------------------------
 # normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 normalize = transforms.Normalize(mean=args.mean, std=args.std)
-preprocess = transforms.Compose([transforms.ToTensor(), normalize])
-def default_loader(path):
+preprocess = transforms.Compose([transforms.ToTensor(), normalize, transforms.RandomHorizontalFlip(0.5)])
+
+preprocess_aug1 = transforms.Compose([transforms.ToTensor(), normalize, transforms.RandomHorizontalFlip(0.5)])
+preprocess_aug1.transforms.append(transforms.RandomResizedCrop([512,], scale=(0.6,1.0)))
+preprocess_aug1.transforms.append(cutOut.Cutout(1, 100))
+# preprocess_aug2 = transforms.Compose([transforms.ToTensor(), normalize, transforms.RandomHorizontalFlip(0.5)])
+preprocess_aug1.transforms.append(transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3))
+# preprocess_aug2.transforms.append(transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 3)))
+
+
+def default_loader(path, mark_aug=False):
     img = Image.open(path)
-    img = img.resize((INPUT_SIZE[0],INPUT_SIZE[1]))
-    img_tensor = preprocess(img)
+    if(not mark_aug):
+        img = img.resize((INPUT_SIZE[0],INPUT_SIZE[1]))
+        img_tensor = preprocess(img)
+    else:
+        img = img.resize((INPUT_SIZE[0],INPUT_SIZE[1]))
+        img_tensor = preprocess_aug1(img)
 
     return img_tensor
 
