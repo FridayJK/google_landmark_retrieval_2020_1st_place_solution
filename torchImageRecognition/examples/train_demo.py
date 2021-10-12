@@ -108,9 +108,11 @@ normalize = transforms.Normalize(mean=args.mean, std=args.std)
 preprocess = transforms.Compose([transforms.ToTensor(), normalize, transforms.RandomHorizontalFlip(0.5)])
 
 preprocess_aug1 = transforms.Compose([transforms.ToTensor(), normalize, transforms.RandomHorizontalFlip(0.5)])
-preprocess_aug1.transforms.append(transforms.RandomResizedCrop([512,], scale=(0.6,1.0)))
-preprocess_aug1.transforms.append(transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3))
-preprocess_aug1.transforms.append(cutOut.Cutout(1, 100))
+if(args.data_argument):
+    preprocess_aug1.transforms.append(transforms.RandomResizedCrop([512,], scale=(0.6,1.0)))
+    preprocess_aug1.transforms.append(transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3))
+    if(args.cutOut):
+        preprocess_aug1.transforms.append(cutOut.Cutout(1, 100))
 
 def default_loader(path, mark_aug=False):
     img = Image.open(path)
