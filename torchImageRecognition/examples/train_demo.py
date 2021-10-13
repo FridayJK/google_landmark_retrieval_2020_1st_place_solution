@@ -81,10 +81,13 @@ class adaCos(torch.nn.Module):
         with torch.no_grad():
             B_avg = torch.where(mask==1, torch.zeros_like(logits), torch.exp(self.adacos_s * logits))
             B_avg = torch.mean(torch.sum(B_avg, dim=1))
-            B_avg = torch.clamp(B_avg,min=1e-7, max= 1e6)
+            # B_avg = torch.clamp(B_avg, min=1e-7, max=1e6)
             theta_med = torch.median(theta[mask==1])
-            self.adacos_s = torch.log(B_avg)/torch.cos(torch.min(self.pi/4, theta_med))
+            # theta_med = torch.abs(theta_med)
+            if(self.training):
+                self.adacos_s = torch.log(B_avg)/torch.cos(torch.min(self.pi/4, theta_med))
         logit = self.adacos_s*logits
+        # logit = torch.clamp(logit, min=-1.0 + 1e-7, max=1.0 - 1e-7)
 
         return logit
 
