@@ -31,6 +31,8 @@ def get_arguments():
     # args.add_argument('--data_list', type=str, default="dataTrain_stage1_augment15_20_list.txt")
     args.add_argument('--data_list_val', type=str, default="dataVal_stage1.txt")
     args.add_argument('--data_argument', type=int, default=0, choices=[0, 1], help="use data augment")
+    args.add_argument('--randomCrop', action="store_true", help="use randomCrop data augment")
+    args.add_argument('--color', action="store_true", help="use color data augment")
     args.add_argument('--cutOut', action="store_true", help="use cutOut data augment")
     args.add_argument('--model_save_path', type=str, default="/workspace/mnt/storage/zhangjunkang/gldv2/model/pytorch/")
     

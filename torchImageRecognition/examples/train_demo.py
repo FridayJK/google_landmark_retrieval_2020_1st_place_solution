@@ -112,8 +112,10 @@ preprocess = transforms.Compose([transforms.ToTensor(), normalize, transforms.Ra
 
 preprocess_aug1 = transforms.Compose([transforms.ToTensor(), normalize, transforms.RandomHorizontalFlip(0.5)])
 if(args.data_argument):
-    preprocess_aug1.transforms.append(transforms.RandomResizedCrop([512,], scale=(0.6,1.0)))
-    preprocess_aug1.transforms.append(transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3))
+    if(args.randomCrop):
+        preprocess_aug1.transforms.append(transforms.RandomResizedCrop([512,], scale=(0.6,1.0)))
+    if(args.color):
+        preprocess_aug1.transforms.append(transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3))
     if(args.cutOut):
         preprocess_aug1.transforms.append(cutOut.Cutout(1, 100))
 
