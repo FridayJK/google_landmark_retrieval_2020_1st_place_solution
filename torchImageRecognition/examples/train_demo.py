@@ -115,7 +115,8 @@ if(args.data_argument):
     if(args.randomCrop):
         preprocess_aug1.transforms.append(transforms.RandomResizedCrop([512,], scale=(0.6,1.0)))
     if(args.color):
-        preprocess_aug1.transforms.append(transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3))
+        # preprocess_aug1.transforms.append(transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3))
+        preprocess_aug1.transforms.append(transforms.ColorJitter(brightness=0.3, contrast=0.2, saturation=0.2))
     if(args.cutOut):
         preprocess_aug1.transforms.append(cutOut.Cutout(1, 100))
 
@@ -215,7 +216,7 @@ def train(args):
 
         scheduler.step()
 
-        print(" train_loss:{}, val_loss:{}".format(losses[0].avg, losses[1].avg))
+        print("epoch:{} train_loss:{}, val_loss:{}".format(epoch, losses[0].avg, losses[1].avg))
         #save model
         save_path = args.model_save_path + EFF_MODELS[args.net_id] + args.train_note
         os.makedirs(save_path, exist_ok=True)
