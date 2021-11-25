@@ -81,9 +81,13 @@ class adaCos(torch.nn.Module):
         with torch.no_grad():
             B_avg = torch.where(mask==1, torch.zeros_like(logits), torch.exp(self.adacos_s * logits))
             B_avg = torch.mean(torch.sum(B_avg, dim=1))
+            # B_avg = torch.clamp(B_avg, min=1e-7, max=1e6)
             theta_med = torch.median(theta[mask==1])
-            self.adacos_s = torch.log(B_avg)/torch.cos(torch.min(self.pi/4, theta_med))
+            # theta_med = torch.abs(theta_med)
+            if(self.training):
+                self.adacos_s = torch.log(B_avg)/torch.cos(torch.min(self.pi/4, theta_med))
         logit = self.adacos_s*logits
+        # logit = torch.clamp(logit, min=-1.0 + 1e-7, max=1.0 - 1e-7)
 
         return logit
 
@@ -107,9 +111,14 @@ normalize = transforms.Normalize(mean=args.mean, std=args.std)
 preprocess = transforms.Compose([transforms.ToTensor(), normalize, transforms.RandomHorizontalFlip(0.5)])
 
 preprocess_aug1 = transforms.Compose([transforms.ToTensor(), normalize, transforms.RandomHorizontalFlip(0.5)])
-preprocess_aug1.transforms.append(transforms.RandomResizedCrop([512,], scale=(0.6,1.0)))
-preprocess_aug1.transforms.append(transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3))
-preprocess_aug1.transforms.append(cutOut.Cutout(1, 100))
+if(args.data_argument):
+    if(args.randomCrop):
+        preprocess_aug1.transforms.append(transforms.RandomResizedCrop([512,], scale=(0.6,1.0)))
+    if(args.color):
+        # preprocess_aug1.transforms.append(transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3))
+        preprocess_aug1.transforms.append(transforms.ColorJitter(brightness=0.3, contrast=0.2, saturation=0.2))
+    if(args.cutOut):
+        preprocess_aug1.transforms.append(cutOut.Cutout(1, 100))
 
 def default_loader(path, mark_aug=False):
     img = Image.open(path)
@@ -207,7 +216,7 @@ def train(args):
 
         scheduler.step()
 
-        print(" train_loss:{}, val_loss:{}".format(losses[0].avg, losses[1].avg))
+        print("epoch:{} train_loss:{}, val_loss:{}".format(epoch, losses[0].avg, losses[1].avg))
         #save model
         save_path = args.model_save_path + EFF_MODELS[args.net_id] + args.train_note
         os.makedirs(save_path, exist_ok=True)
