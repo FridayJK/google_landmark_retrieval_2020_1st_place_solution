@@ -24,7 +24,7 @@ from efficientnet_pytorch import EfficientNet
 
 # print(os.getcwd())
 sys.path.append(os.getcwd())
-sys.path.append("/root/google_landmark_retrieval_2020_1st_place_solution")
+sys.path.append("/workspace/google_landmark_retrieval_2020_1st_place_solution")
 from torchImageRecognition.utils import onnx_conv, utilsEMB
 from torchImageRecognition.datasets import data_loader
 from torchImageRecognition.examples.configure import get_arguments
@@ -204,7 +204,7 @@ def extract_feat(data_path, data_list, model_path):
     cudnn.benchmark = True
 
     #--------------------------------
-    batch_size = 64
+    batch_size = 128
     val_data      = data_loader.testset(data_path, data_list, loader=default_loader)
     val_loader    = DataLoader(val_data, batch_size=batch_size, shuffle=False, num_workers=32, pin_memory=True)
     
@@ -231,7 +231,7 @@ def extract_feat(data_path, data_list, model_path):
     return features
 
 def test(model_path):
-    root_path = "/workspace/mnt/storage/zhangjunkang/zjk3/data/GLDv2/"
+    root_path = "/workspace/mnt/storage/zhangjunkang/zjk1/GLDv2/"
     test_csv = pd.read_csv(os.path.join(root_path, "test_labels/retrieval_solution_v2.1.csv"))
     test_ids = test_csv['id']
     test_usage = test_csv['Usage']
@@ -273,7 +273,7 @@ def test(model_path):
     #save solution topK images
     test_image_id = []
     solution_image_id = []
-    index_list_csv = pd.read_csv('/workspace/mnt/storage/zhangjunkang/zjk3/data/GLDv2/index_labels/index.csv')
+    index_list_csv = pd.read_csv('/workspace/mnt/storage/zhangjunkang/zjk1/GLDv2/index_labels/index.csv')
     index_images = index_list_csv['id']
     for i in range(len(topK_index)):
         solution_image_id.append(" ".join(np.array(index_images[topK_index[i]]).tolist()))
@@ -294,7 +294,7 @@ if __name__ == '__main__':
     # if(args.work_mode == "train"):
     #     train(args)
     # elif(args.work_mode == "test"):
-    model_root_path = "/workspace/mnt/storage/zhangjunkang/gldv2/model/pytorch/efficientnet-b3test5_net3/"
-    model_list = ["efficientnet-b3epoch30.pth","efficientnet-b3epoch35.pth", "efficientnet-b3epoch40.pth", "efficientnet-b3epoch45.pth", "efficientnet-b3epoch49.pth"]
+    model_root_path = "/workspace/mnt/storage/zhangjunkang/zjk_fileSystem/model/pytorch/efficientnet-b3test59_all_net3/"
+    model_list = ["efficientnet-b3epoch10.pth","efficientnet-b3epoch20.pth", "efficientnet-b3epoch30.pth", "efficientnet-b3epoch35.pth", "efficientnet-b3epoch40.pth", "efficientnet-b3epoch45.pth", "efficientnet-b3epoch49.pth"]
     for model in model_list:
         test(model_root_path + model)

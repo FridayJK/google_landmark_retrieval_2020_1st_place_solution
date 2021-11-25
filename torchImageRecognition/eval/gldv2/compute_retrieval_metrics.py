@@ -25,7 +25,7 @@ import dataset_file_io
 
 cmd_args = None
 
-def metric_gldv2(predictions_path, solution_path = '/workspace/mnt/storage/zhangjunkang/zjk3/data/GLDv2/test_labels/retrieval_solution_v2.1.csv'):
+def metric_gldv2(predictions_path, solution_path = '/workspace/mnt/storage/zhangjunkang/zjk1/GLDv2/test_labels/retrieval_solution_v2.1.csv'):
   # Read solution.
   print('Reading solution...')
   public_solution, private_solution, ignored_ids = dataset_file_io.ReadSolution(
@@ -78,7 +78,7 @@ if __name__ == '__main__':
   parser.add_argument(
       '--predictions_path',
       type=str,
-      default='/workspace/mnt/storage/zhangjunkang/zjk3/data/GLDv2/test_labels/retrieval_solution_v2.1.csv',
+      default='/workspace/mnt/storage/zhangjunkang/zjk1/GLDv2/test_labels/retrieval_solution_v2.1.csv',
       help="""
       Path to CSV predictions file, formatted with columns 'id,images' (the
       file should include a header).
@@ -86,7 +86,7 @@ if __name__ == '__main__':
   parser.add_argument(
       '--solution_path',
       type=str,
-      default='/workspace/mnt/storage/zhangjunkang/zjk3/data/GLDv2/test_labels/retrieval_solution_v2.1.csv',
+      default='/workspace/mnt/storage/zhangjunkang/zjk1/GLDv2/test_labels/retrieval_solution_v2.1.csv',
       help="""
       Path to CSV solution file, formatted with columns 'id,images,Usage'
       (the file should include a header).

@@ -4,7 +4,7 @@ import argparse
 def get_arguments():
     args = argparse.ArgumentParser()
 
-    args.add_argument('--net_id', type=int, default=0, help="efficientnet id num")
+    args.add_argument('--net_id', type=int, default=3, help="efficientnet id num")
     args.add_argument('--input_size', nargs="+", default=[512,512], help="input size of net")
     args.add_argument('--embdding_size', type=int, default=512)
     args.add_argument('--num_class', type=int, default=81313)
@@ -26,12 +26,12 @@ def get_arguments():
     args.add_argument('--mean', nargs="+", default=[0.485, 0.456, 0.406])
     args.add_argument('--std', nargs="+", default=[0.229, 0.224, 0.225])
 
-    args.add_argument('--root_path', type=str, default="/workspace/mnt/storage/zhangjunkang/gldv1/gldv2/")
+    args.add_argument('--root_path', type=str, default="/workspace/mnt/storage/zhangjunkang/zjk1/GLDv2/")
     args.add_argument('--data_list', type=str, default="dataTrain_stage1.txt")
     # args.add_argument('--data_list', type=str, default="dataTrain_stage1_augment15_20_list.txt")
     args.add_argument('--data_list_val', type=str, default="dataVal_stage1.txt")
     args.add_argument('--data_argument', type=int, default=0, choices=[0, 1], help="use data augment")
-    args.add_argument('--model_save_path', type=str, default="/workspace/mnt/storage/zhangjunkang/gldv2/model/pytorch/")
+    args.add_argument('--model_save_path', type=str, default="/workspace/mnt/storage/zhangjunkang/zjk_fileSystem/model/pytorch/")
     
     args.add_argument('--work_mode', type=str, default="train", choices=['train', 'test'])
     args.add_argument('--local_rank', default=0, type=int, help='node rank for distributed training')
